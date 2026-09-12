@@ -12,7 +12,6 @@
     "verify:data": "npm run verify:data --prefix cli"
   },
   "dependencies": {
-    "@next/swc-win32-x64-msvc": "^16.3.4",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.3",
     "@radix-ui/react-checkbox": "^1.1.4",
