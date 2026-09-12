@@ -1,0 +1,1 @@
+export { DentistList } from '@/components/appointments/AppointmentList';

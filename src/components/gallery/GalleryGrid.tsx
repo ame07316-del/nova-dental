@@ -1,0 +1,1 @@
+export { GalleryGrid } from '@/components/dental/AvatarsAndMore';
