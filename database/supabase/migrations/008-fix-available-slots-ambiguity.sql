@@ -63,12 +63,12 @@ BEGIN
         IF (p_date = CURRENT_DATE AND ((p_date + s) AT TIME ZONE 'UTC') <= now()) THEN
           v_skip := true;
         END IF;
-        -- blocked time
+        -- blocked time (timestamptz → tstzrange)
         IF NOT v_skip AND EXISTS (
           SELECT 1 FROM blocked_times bt
           WHERE bt.doctor_id = p_dentist_id
-            AND tsrange(((p_date + s) AT TIME ZONE 'UTC'), ((p_date + e) AT TIME ZONE 'UTC'), '[)')
-                && tsrange(bt.start_time, bt.end_time, '[)')
+            AND tstzrange(((p_date + s) AT TIME ZONE 'UTC'), ((p_date + e) AT TIME ZONE 'UTC'), '[)')
+                && tstzrange(bt.start_time, bt.end_time, '[)')
         ) THEN
           v_skip := true;
         END IF;
