@@ -405,7 +405,17 @@ export function BookingFlow() {
     setSubmitting(false);
 
     if (res.ok) {
-      notify('success', 'Appointment Booked!', `${booking.serviceName} on ${booking.date} at ${booking.time}. Payment is made at the clinic cashier.`);
+      if (res.data.demo) {
+        notify(
+          'info',
+          language === 'ar' ? 'وضع العرض التجريبي' : 'Demo Mode',
+          language === 'ar'
+            ? 'تمت محاكاة الحجز بنجاح — لن يُحفظ فعليًا حتى ربط Supabase.'
+            : 'Booking simulated — it will not be saved until Supabase is connected.'
+        );
+      } else {
+        notify('success', 'Appointment Booked!', `${booking.serviceName} on ${booking.date} at ${booking.time}. Payment is made at the clinic cashier.`);
+      }
       try {
         sessionStorage.setItem('nova-last-booking', res.data.appointmentId);
       } catch {

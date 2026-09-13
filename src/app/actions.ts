@@ -169,7 +169,9 @@ export async function getAvailableSlots(
   return { ok: true, data: (data ?? []) as AvailableSlot[] };
 }
 
-export async function bookAppointment(input: BookAppointmentInput): Promise<ActionResult<{ appointmentId: string }>> {
+export async function bookAppointment(
+  input: BookAppointmentInput
+): Promise<ActionResult<{ appointmentId: string; demo?: boolean }>> {
   if (!input.serviceId || !input.dentistId || !input.date || !input.startTime) {
     return { ok: false, error: 'Missing required booking fields' };
   }
@@ -180,7 +182,12 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Acti
     return { ok: false, error: 'Name and phone are required' };
   }
 
-  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
+  if (!isSupabaseServerConfigured()) {
+    // وضع العرض التجريبي: نحاكي نجاح الحجز حتى يكتمل التدفق كاملًا بدون Supabase.
+    // ⚠️ لا تُحفظ أي بيانات حقيقية — لتفعيل الحجز الفعلي اربط Supabase في .env.local
+    const demoId = `demo-${Date.now().toString(36)}`;
+    return { ok: true, data: { appointmentId: demoId, demo: true } };
+  }
   const supabase = createClient();
   const { data, error } = await supabase.rpc('book_appointment', {
     p_payload: {
