@@ -89,7 +89,7 @@ export function AppointmentDetails() {
         <div className="rounded-lg border border-nova-border p-4">
           <h4 className="mb-2 text-xs font-semibold uppercase text-nova-text-muted">Doctor Information</h4>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-nova-accent text-nova-text-dark text-sm font-bold">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-nova-accent text-nova-primary-dark text-sm font-bold">
               {apt.dentistName.split(' ').slice(1).map((n) => n[0]).join('').substring(0, 2)}
             </div>
             <div>

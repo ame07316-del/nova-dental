@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-import { useTheme as UseTheme } from 'next-themes';
 import { storage } from '@/lib/utils';
 
 // Theme types
@@ -11,73 +10,70 @@ type Theme = 'light' | 'dark' | 'system';
 interface ThemeContextType {
   theme: Theme;
   resolvedTheme: 'light' | 'dark';
+  isDark: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme: setNextTheme, resolvedTheme } = UseTheme();
+function resolveSystemTheme(): 'light' | 'dark' {
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
-  // Initialize from storage — default to light mode for demo polish.
+function resolveTheme(theme: Theme): 'light' | 'dark' {
+  return theme === 'system' ? resolveSystemTheme() : theme;
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Default 'light' on server to match SSR; sync from storage after mount
+  const [theme, setThemeState] = useState<Theme>('light');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+
+  // Mount-only: read stored theme once (no SSR mismatch)
   useEffect(() => {
     const stored = storage.get<Theme>('nova-theme', 'light');
-    setNextTheme(stored);
+    setThemeState(stored);
+    setResolvedTheme(resolveTheme(stored));
     setMounted(true);
-  }, [setNextTheme]);
+  }, []);
 
-  // Sync theme changes to storage
-  const handleSetTheme = useCallback((newTheme: Theme) => {
-    storage.set('nova-theme', newTheme);
-    setNextTheme(newTheme);
-  }, [setNextTheme]);
-
-  const toggleTheme = useCallback(() => {
-    const current = resolvedTheme === 'dark' ? 'light' : 'dark';
-    handleSetTheme(current as Theme);
-  }, [resolvedTheme, handleSetTheme]);
-
-  // Apply theme to document
+  // Single effect: apply resolved theme to document (no dueling effects)
   useEffect(() => {
     if (!mounted) return;
     const root = document.documentElement;
-    const resolved = resolvedTheme ?? 'light';
+    const resolved = resolveTheme(theme);
+    setResolvedTheme(resolved);
 
     root.setAttribute('data-theme', resolved);
     root.classList.remove('light', 'dark');
     root.classList.add(resolved);
+    root.style.colorScheme = resolved;
+  }, [theme, mounted]);
 
-    if (resolved === 'dark') {
-      root.style.colorScheme = 'dark';
-    } else {
-      root.style.colorScheme = 'light';
-    }
-  }, [resolvedTheme, mounted]);
+  // Sync theme changes to storage
+  const handleSetTheme = useCallback((newTheme: Theme) => {
+    storage.set('nova-theme', newTheme);
+    setThemeState(newTheme);
+  }, []);
 
-  // Prevent flash of wrong theme
-  useEffect(() => {
-    if (!mounted) return;
-    const stored = storage.get<Theme>('nova-theme', 'light');
-    const root = document.documentElement;
-
-    if (stored === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const resolved = prefersDark ? 'dark' : 'light';
-      root.setAttribute('data-theme', resolved);
-      root.style.colorScheme = resolved;
-    } else {
-      root.setAttribute('data-theme', stored);
-      root.style.colorScheme = stored;
-    }
-  }, [mounted]);
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const resolved = resolveTheme(prev);
+      const next: Theme = resolved === 'dark' ? 'light' : 'dark';
+      storage.set('nova-theme', next);
+      return next;
+    });
+  }, []);
 
   return (
     <ThemeContext.Provider
       value={{
-        theme: (theme ?? 'system') as Theme,
-        resolvedTheme: (resolvedTheme ?? 'light') as 'light' | 'dark',
+        theme,
+        resolvedTheme,
+        isDark: resolvedTheme === 'dark',
         setTheme: handleSetTheme,
         toggleTheme,
       }}

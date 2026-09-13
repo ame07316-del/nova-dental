@@ -32,7 +32,25 @@ function toDayName(date: string): string {
 
 function toTime(value: unknown): string {
   if (!value) return '';
-  return String(value).slice(0, 5);
+  const m = String(value).match(/(\d{1,2}):(\d{2})/);
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : '';
+}
+
+const APPOINTMENT_STATUSES = new Set([
+  'confirmed', 'pending', 'in-progress', 'completed', 'cancelled',
+  'no-show', 'rescheduled', 'waiting', 'delayed',
+]);
+
+function toStatus(value: unknown): Appointment['status'] {
+  return typeof value === 'string' && APPOINTMENT_STATUSES.has(value)
+    ? (value as Appointment['status'])
+    : 'pending';
+}
+
+function toPrice(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 export function mapPatient(row: Row): Patient {
@@ -154,10 +172,10 @@ export function mapAppointment(row: AppointmentRow): Appointment {
     dayName: toDayName(row.date ?? ''),
     startTime: toTime(row.start_time),
     endTime: toTime(row.end_time),
-    status: (row.status as Appointment['status']) ?? 'pending',
+    status: toStatus(row.status),
     treatmentType: row.treatment_type ?? '',
     notes: row.notes ?? null,
-    price: row.price != null ? Number(row.price) : null,
+    price: toPrice(row.price),
     currency: row.currency ?? null,
     isPaid: row.is_paid ?? false,
     roomNumber: row.room_number ?? null,
@@ -193,7 +211,7 @@ export function mapNotification(row: Row): Notification {
     title: row.title ?? '',
     message: row.message ?? '',
     time: row.time ?? row.created_at ?? '',
-    read: row.is_read !== false,
+    read: row.is_read === true,
     relatedId: row.related_id ?? null,
     createdAt: row.created_at ?? '',
   };

@@ -5,5 +5,6 @@ export { Badge, StatusBadge } from './Badge';
 export { Modal, ConfirmDialog, useModal, ModalProvider } from './Modal';
 export { Table, TableCompact, AppointmentTable } from './Table';
 export { Toast, NotificationContainer, notify } from './Notification';
+export { Drawer } from './Drawer';
 export { Skeleton, LoadingSpinner, PageLoader, CardSkeleton } from './Skeleton';
 export { EmptyState, ErrorState, SuccessState, LoadingOverlay } from './EmptyState';

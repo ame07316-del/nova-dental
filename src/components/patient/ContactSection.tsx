@@ -23,7 +23,7 @@ export function ContactSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    notify('success', 'Message Sent', 'Your message has been sent. We&apos;ll get back to you soon.');
+    notify('success', 'Message Sent', "Your message has been sent. We'll get back to you soon.");
     setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
   };
 

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/components/layout/AppProvider';
 import { useAuth } from '@/components/layout/AuthProvider';
-import { useLanguage } from '@/components/layout/LanguageProvider';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { NotificationContainer } from '@/components/ui/Notification';
@@ -13,27 +12,29 @@ import { cn } from '@/lib/utils';
 interface AppLayoutProps {
   children: React.ReactNode;
   showSidebar?: boolean;
+  requireAuth?: boolean;
   className?: string;
 }
 
 export function AppLayout({
   children,
   showSidebar = true,
+  requireAuth = true,
   className,
 }: AppLayoutProps) {
   const { sidebarOpen } = useApp();
   const { isAuthenticated, isLoading } = useAuth();
-  const { direction } = useLanguage();
   const router = useRouter();
 
   // Redirect unauthenticated users to the login page once session state resolves.
   useEffect(() => {
+    if (!requireAuth) return;
     if (!isLoading && !isAuthenticated) {
       router.replace('/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [requireAuth, isLoading, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (requireAuth && !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-nova-bg">
         <div className="flex flex-col items-center gap-4">
@@ -45,7 +46,7 @@ export function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen" dir={direction}>
+    <div className="flex min-h-screen">
       {/* Sidebar */}
       {showSidebar && <Sidebar />}
 
@@ -53,7 +54,8 @@ export function AppLayout({
       <div
         className={cn(
           'flex flex-1 flex-col transition-all duration-300',
-          showSidebar && sidebarOpen ? 'ml-64' : 'ml-16'
+          showSidebar && sidebarOpen ? 'ms-64' : 'ms-16',
+          className
         )}
       >
         <Header />

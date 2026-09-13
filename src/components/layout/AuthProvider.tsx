@@ -1,9 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-import { createClientComponentClient, type User } from '@supabase/auth-helpers-nextjs';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { storage } from '@/lib/utils';
 
 // Auth user type
 interface AuthUser {
@@ -44,9 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Initialize Supabase client
+  // Initialize session from the SHARED browser client (same storage as login).
   useEffect(() => {
-    const supabase = createClientComponentClient();
+    const supabase = getSupabaseBrowser();
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -66,20 +66,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const supabase = createClientComponentClient();
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     router.refresh();
   }, [router]);
 
   const signUp = useCallback(async (email: string, password: string, data?: Record<string, unknown>) => {
-    const supabase = createClientComponentClient();
+    const supabase = getSupabaseBrowser();
+    // Role is always forced to patient: caller-controlled metadata must never
+    // mint staff roles (the staff trigger only honors doctor/secretary and
+    // never admin, but public signup has no business requesting either).
+    const { role: _ignored, ...safeData } = data ?? {};
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          ...data,
+          ...safeData,
+          role: 'patient',
         },
       },
     });
@@ -88,17 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const signOut = useCallback(async () => {
-    const supabase = createClientComponentClient();
+    const supabase = getSupabaseBrowser();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setUser(null);
-    storage.remove('nova-auth');
     router.push('/');
     router.refresh();
   }, [router]);
 
   const refreshSession = useCallback(async () => {
-    const supabase = createClientComponentClient();
+    const supabase = getSupabaseBrowser();
     const { data } = await supabase.auth.getSession();
     setUser(mapUser(data.session?.user ?? null));
   }, []);
@@ -128,24 +132,3 @@ export function useAuth() {
   }
   return context;
 }
-
-// HOC to protect routes
-export function requireAuth(Component: React.ComponentType<Record<string, unknown>>) {
-  return function ProtectedComponent(props: Record<string, unknown>) {
-    const { isAuthenticated, isLoading } = useAuth();
-
-    if (isLoading) {
-      return <div className="flex h-screen items-center justify-center">Loading...</div>;
-    }
-
-    if (!isAuthenticated) {
-      window.location.href = '/';
-      return null;
-    }
-
-    return <Component {...props} />;
-  };
-}
-
-// Export auth types
-export type { AuthUser };

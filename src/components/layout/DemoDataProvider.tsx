@@ -25,7 +25,7 @@ import type {
 // Type-safe demo data
 const demoData = {
   dentists: dentists as Dentist[],
-  services: services as Service[],
+  services: services.map((s) => ({ currency: 'EGP', imageUrl: null, ...s })) as Service[],
   schedules: schedules as Schedule[],
   patients: patients as Patient[],
   appointments: appointments as Appointment[],

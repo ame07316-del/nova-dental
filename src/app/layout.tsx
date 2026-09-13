@@ -39,7 +39,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: process.env.NEXT_PUBLIC_APP_URL,
     title: 'NOVA Dental Studio',
     description: 'Modern dental clinic operations system.',
     siteName: 'NOVA Dental Studio',
@@ -65,7 +64,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0EA5E9',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#0EA5E9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B1F3A' },
+  ],
   colorScheme: 'light dark',
 };
 
@@ -76,8 +78,8 @@ export default function RootLayout({
 }) {
   return (
       <html
-        lang="en"
-        dir="ltr"
+        lang="ar"
+        dir="rtl"
         suppressHydrationWarning
         className={`${inter.variable} ${notoNaskhArabic.variable}`}
       >

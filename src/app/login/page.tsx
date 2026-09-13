@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { AuthLayout } from '@/components/layout/AppLayout';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input, Select } from '@/components/ui/Input';
+import { Input } from '@/components/ui/Input';
 import { notify } from '@/components/ui/Notification';
 import { cn } from '@/lib/utils';
 
@@ -14,15 +14,15 @@ type Mode = 'signin' | 'signup';
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = getSupabaseBrowser();
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState<'secretary' | 'doctor'>('secretary');
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -34,8 +34,8 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       notify('success', 'Welcome back', 'Signed in successfully.');
+      await router.refresh();
       router.replace('/dashboard');
-      router.refresh();
     } catch (err) {
       notify('error', 'Sign in failed', (err as Error).message || 'Check your credentials.');
     } finally {
@@ -54,19 +54,27 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      // Patient-only public signup. Staff accounts are created by an admin,
+      // never by self-selected role (prevents privilege escalation).
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             first_name: firstName,
             last_name: lastName,
-            role,
+            role: 'patient',
           },
         },
       });
       if (error) throw error;
-      notify('success', 'Account created', `Staff profile (${role}) created. You can now sign in.`);
+      // No session = email confirmation required
+      if (!data.session) {
+        setCheckEmail(true);
+        notify('success', 'Check your email', 'Confirm your email to finish creating your account.');
+        return;
+      }
+      notify('success', 'Account created', 'You can now sign in.');
       setMode('signin');
       setPassword('');
     } catch (err) {
@@ -88,15 +96,17 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-xl">NOVA Dental Studio</CardTitle>
           <p className="mt-1 text-sm text-nova-text-secondary">
-            {mode === 'signin' ? 'Staff sign in' : 'Create a staff account'}
+            {mode === 'signin' ? 'Staff sign in' : 'Create a patient account'}
           </p>
         </CardHeader>
         <CardBody className="space-y-4">
-          <div className="flex gap-1 rounded-lg bg-nova-muted p-1">
+          <div className="flex gap-1 rounded-lg bg-nova-muted p-1" role="tablist">
             {(['signin', 'signup'] as Mode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => setMode(m)}
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => { setMode(m); setCheckEmail(false); }}
                 className={cn(
                   'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all',
                   mode === m ? 'bg-nova-primary text-white shadow-soft' : 'text-nova-text-secondary hover:text-nova-text'
@@ -107,45 +117,49 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {mode === 'signup' && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-nova-text">First name</label>
-                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" />
+          {checkEmail ? (
+            <p className="rounded-lg bg-nova-muted p-3 text-sm text-nova-text">
+              Account created — check your email to confirm, then sign in.
+            </p>
+          ) : (
+          <form
+            className="space-y-4"
+            onSubmit={(e) => { e.preventDefault(); mode === 'signin' ? void handleSignIn() : void handleSignUp(); }}
+          >
+            {mode === 'signup' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="firstName" className="mb-1 block text-xs font-medium text-nova-text">First name</label>
+                  <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="mb-1 block text-xs font-medium text-nova-text">Last name</label>
+                  <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" />
+                </div>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-nova-text">Last name</label>
-                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" />
-              </div>
-            </div>
-          )}
+            )}
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-nova-text">Email</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@novadental.com" />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-nova-text">Password</label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
-
-          {mode === 'signup' && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-nova-text">Role</label>
-              <Select value={role} onChange={(e) => setRole(e.target.value as 'secretary' | 'doctor')} className="w-full">
-                <option value="secretary">Secretary (clinic front desk)</option>
-                <option value="doctor">Doctor (dentist)</option>
-              </Select>
-              <p className="mt-1 text-xs text-nova-text-muted">
-                A dentist record is created automatically when a doctor signs up.
-              </p>
+              <label htmlFor="email" className="mb-1 block text-xs font-medium text-nova-text">Email</label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@novadental.com" />
             </div>
-          )}
 
-          <Button onClick={mode === 'signin' ? handleSignIn : handleSignUp} className="w-full" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
-          </Button>
+            <div>
+              <label htmlFor="password" className="mb-1 block text-xs font-medium text-nova-text">Password</label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+
+            {mode === 'signup' && (
+              <p className="text-xs text-nova-text-muted">
+                Public registration creates a patient account only. Staff accounts are provisioned by an administrator.
+              </p>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+            </Button>
+          </form>
+          )}
 
           <p className="text-center text-xs text-nova-text-muted">
             {mode === 'signin'

@@ -69,14 +69,12 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     .maybeSingle();
 
   if (profile) {
-    role = profile.role as StaffRole;
-  } else {
-    const metadataRole = user.user_metadata?.role;
-    if (metadataRole === 'doctor' || metadataRole === 'secretary' || metadataRole === 'admin') {
-      role = metadataRole;
-    } else if (metadataRole === 'patient') {
-      role = 'patient';
-    }
+    role = profile.role as StaffRole | 'patient';
+  } else if (user.user_metadata?.role === 'patient') {
+    // No profile yet: only the harmless patient role is honored from metadata.
+    // Staff roles (doctor/secretary/admin) are granted exclusively via the
+    // profiles table by an administrator — never by self-selected signup data.
+    role = 'patient';
   }
 
   return {
@@ -106,7 +104,13 @@ export async function getPublicCatalog(): Promise<ActionResult<{ services: Servi
   const supabase = createClient();
   const [servicesRes, dentistsRes] = await Promise.all([
     supabase.from('services').select('*').eq('is_active', true).order('name', { ascending: true }),
-    supabase.from('dentists').select('*').eq('is_active', true).order('first_name', { ascending: true }),
+    // Public catalog exposes display columns only — never staff PII
+    // (email, phone, license_number stay server-side).
+    supabase
+      .from('dentists')
+      .select('id, first_name, last_name, specialty, bio, avatar_url, rating, is_active')
+      .eq('is_active', true)
+      .order('first_name', { ascending: true }),
   ]);
 
   if (servicesRes.error) return { ok: false, error: servicesRes.error.message };
@@ -216,8 +220,22 @@ export async function fetchAppointments(scope: 'all' | 'mine' = 'all'): Promise<
 
 export async function fetchAppointment(id: string): Promise<ActionResult<Appointment>> {
   try {
-    await requireStaff();
+    const { user } = await requireStaff();
     const supabase = createClient();
+    // Doctors may only read their own appointments (IDOR guard, mirrors
+    // fetchAppointmentHistory / fetchAppointments / startLiveSession).
+    if (user.role === 'doctor') {
+      const { data: me } = await supabase.from('dentists').select('id').eq('user_id', user.id).maybeSingle();
+      if (!me) return { ok: false, error: 'Not found' };
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, patients(first_name,last_name), dentists(first_name,last_name), services(name)')
+        .eq('id', id)
+        .eq('dentist_id', me.id)
+        .single();
+      if (error) return { ok: false, error: 'Not found' };
+      return { ok: true, data: mapAppointment(data) };
+    }
     const { data, error } = await supabase
       .from('appointments')
       .select('*, patients(first_name,last_name), dentists(first_name,last_name), services(name)')
@@ -336,6 +354,17 @@ export async function updateAppointmentStatus(
     const supabase = createClient();
 
     const { data: existing } = await supabase.from('appointments').select('*').eq('id', id).single();
+    if (!existing) return { ok: false, error: 'Not found' };
+    // Doctors may only change the status of their own appointments (IDOR guard).
+    if (user.role === 'doctor') {
+      const { data: mine } = await supabase
+        .from('dentists')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('id', existing.dentist_id)
+        .maybeSingle();
+      if (!mine) return { ok: false, error: 'Not authorized' };
+    }
     const { data, error } = await supabase
       .from('appointments')
       .update({ status: input.status })
@@ -381,7 +410,9 @@ export async function fetchPatients(search?: string): Promise<ActionResult<Patie
     }
 
     if (search) {
-      const safe = search.replace(/[,():"]/g, ' ').trim();
+      // Escape all PostgREST-significant chars so the search stays plain text.
+      const safe = search.replace(/[,():".*%_]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
+      if (!safe) return { ok: true, data: [] };
       const like = `%${safe}%`;
       query = query.or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},phone.ilike.${like}`);
     }
@@ -395,9 +426,14 @@ export async function fetchPatients(search?: string): Promise<ActionResult<Patie
 
 export async function fetchDentists(includeInactive = false): Promise<ActionResult<Dentist[]>> {
   try {
-    await requireStaff();
+    const { user } = await requireStaff();
     const supabase = createClient();
-    let query = supabase.from('dentists').select('*');
+    // Contact/PII columns stay with secretary/admin; doctors get display columns.
+    const columns =
+      user.role === 'secretary' || user.role === 'admin'
+        ? '*'
+        : 'id, first_name, last_name, specialty, bio, avatar_url, rating, is_active';
+    let query = supabase.from('dentists').select(columns);
     if (!includeInactive) query = query.eq('is_active', true);
     const { data, error } = await query.order('first_name', { ascending: true });
     if (error) return { ok: false, error: error.message };
@@ -602,8 +638,13 @@ export async function fetchNotifications(): Promise<ActionResult<{ list: Notific
           .select('id')
           .eq('dentist_id', me.id)
           .limit(500);
-        const aptIds = (aptRows ?? []).map((r) => r.id);
-        query = query.or(`user_id.is.null,related_id.in.${JSON.stringify(aptIds)}`);
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const aptIds = (aptRows ?? []).map((r) => r.id).filter((id): id is string => typeof id === 'string' && uuidRe.test(id));
+        if (aptIds.length > 0) {
+          query = query.or(`user_id.is.null,related_id.in.(${aptIds.join(',')})`);
+        } else {
+          query = query.is('user_id', null);
+        }
       }
     }
     const { data, error } = await query;
@@ -619,9 +660,14 @@ export async function fetchNotifications(): Promise<ActionResult<{ list: Notific
 
 export async function markNotificationRead(id: string): Promise<ActionResult<null>> {
   try {
-    await requireStaff();
+    const { user } = await requireStaff();
     const supabase = createClient();
-    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    // Doctors may only touch clinic-wide or their own notifications.
+    let query = supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (user.role === 'doctor') {
+      query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
+    }
+    const { error } = await query;
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: null };
   } catch (err) {
@@ -631,7 +677,15 @@ export async function markNotificationRead(id: string): Promise<ActionResult<nul
 
 export async function markAllNotificationsRead(): Promise<ActionResult<null>> {
   try {
-    await requireStaff();
+    const { user } = await requireStaff();
+    // Mass-update is a secretary/admin operation; doctors are limited to
+    // clinic-wide notifications so one account can't wipe the clinic's alerts.
+    if (user.role !== 'secretary' && user.role !== 'admin') {
+      const supabase = createClient();
+      const { error } = await supabase.from('notifications').update({ is_read: true }).is('user_id', null).neq('is_read', true);
+      if (error) return { ok: false, error: error.message };
+      return { ok: true, data: null };
+    }
     const supabase = createClient();
     const { error } = await supabase.from('notifications').update({ is_read: true }).neq('is_read', true);
     if (error) return { ok: false, error: error.message };
@@ -643,9 +697,13 @@ export async function markAllNotificationsRead(): Promise<ActionResult<null>> {
 
 export async function dismissNotification(id: string): Promise<ActionResult<null>> {
   try {
-    await requireStaff();
+    const { user } = await requireStaff();
     const supabase = createClient();
-    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    let query = supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (user.role === 'doctor') {
+      query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
+    }
+    const { error } = await query;
     if (error) return { ok: false, error: error.message };
     return { ok: true, data: null };
   } catch (err) {

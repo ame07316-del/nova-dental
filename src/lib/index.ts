@@ -1,4 +1,4 @@
-export { supabase } from './supabase/client';
+export { getSupabaseBrowser } from './supabase/browser';
 export type { Patient, Dentist, Appointment, Service, GalleryImage, Notification, Billing, Schedule, AuthUser, Session } from './supabase/types';
 export { cn } from './utils';
 export {

@@ -78,9 +78,26 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   const [appointments, setAppointments] = useState<EnrichedAppointment[]>([]);
 
   // Populate local store from live Supabase data whenever it (re)loads.
+  // Merge by id so in-flight optimistic creates (client-generated ids not
+  // yet present on the server) are preserved instead of being clobbered.
   useEffect(() => {
     if (liveAppointments) {
-      setAppointments((liveAppointments as any[]).map(enrichAppointment));
+      const enriched = (liveAppointments as any[]).map(enrichAppointment);
+      setAppointments((prev) => {
+        if (prev.length === 0) return enriched;
+        const liveIds = new Set(enriched.map((a) => a.id));
+        const optimistic = prev.filter((a) => {
+          if (liveIds.has(a.id)) return false;
+          // Safety net: drop stale optimistic rows (older than 10 min) so a
+          // lost server response can never duplicate a booking forever.
+          if (a.id.startsWith('tmp-')) {
+            const age = Date.now() - new Date(a.createdAt).getTime();
+            return Number.isFinite(age) && age < 10 * 60 * 1000;
+          }
+          return true;
+        });
+        return [...enriched, ...optimistic];
+      });
     }
   }, [liveAppointments]);
   const [filters, setFiltersState] = useState<AppointmentFilters>({
@@ -92,7 +109,12 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     dateTo: '',
   });
   const [calendarView, setCalendarView] = useState<CalendarView>('week');
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${m}-${day}`;
+  });
   const [selectedAppointment, setSelectedAppointment] = useState<EnrichedAppointment | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<EnrichedAppointment | null>(null);
@@ -174,8 +196,8 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
   }, [appointments, filters]);
 
   const getAppointmentsForDate = useCallback(
-    (date: string) => filteredAppointments.filter((a) => a.date === date && a.status !== 'cancelled'),
-    [filteredAppointments]
+    (date: string) => appointments.filter((a) => a.date === date && a.status !== 'cancelled'),
+    [appointments]
   );
 
   const getAppointmentsForDateRange = useCallback(
@@ -216,7 +238,7 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       const service = services.find((s) => s.id === data.serviceId);
 
       const localApt: EnrichedAppointment = {
-        id: generateId(),
+        id: `tmp-${generateId()}`,
         patientId: data.patientId,
         patientName: patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown',
         patientPhone: patient?.phone || '',
@@ -240,7 +262,7 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
 
       setAppointments((prev) => [...prev, localApt]);
 
-      void createStaffAppointment({
+      createStaffAppointment({
         patientId: data.patientId,
         dentistId: data.dentistId,
         serviceId: data.serviceId,
@@ -249,7 +271,20 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
         treatmentType: data.treatmentType,
         notes: data.notes,
         status: 'confirmed',
-      });
+      })
+        .then((res) => {
+          if (res.ok) {
+            // Swap the optimistic row for the real server row (same booking,
+            // server id) so refetches never duplicate it.
+            const serverRow = enrichAppointment(res.data);
+            setAppointments((prev) => prev.map((a) => (a.id === localApt.id ? serverRow : a)));
+          } else {
+            // Server rejected it: roll back so no ghost booking lingers.
+            setAppointments((prev) => prev.filter((a) => a.id !== localApt.id));
+            console.error('createStaffAppointment failed:', res.error);
+          }
+        })
+        .catch((err) => console.error('createStaffAppointment failed:', err));
 
       return { success: true, conflicts: [] };
     },
@@ -305,9 +340,9 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       );
 
       if (changes.length > 0) {
-        setTimeout(() => {
-          addHistory(id, { action: 'updated', performedBy: 'Staff', changes });
-        }, 0);
+        // Applied as a queued functional update right after the edit above,
+        // so it always attaches to the fresh row (no timer, no stale snapshot).
+        addHistory(id, { action: 'updated', performedBy: 'Staff', changes });
       }
 
       return { success: true, conflicts: [] };
@@ -324,7 +359,11 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
             : a
         )
       );
-      void updateAppointmentStatus(id, { status: 'cancelled', notes: `Cancelled: ${reason}` });
+      updateAppointmentStatus(id, { status: 'cancelled', notes: `Cancelled: ${reason}` })
+        .then((res) => {
+          if (!res.ok) console.error('updateAppointmentStatus failed:', res.error);
+        })
+        .catch((err) => console.error('updateAppointmentStatus failed:', err));
     },
     []
   );
@@ -388,7 +427,11 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status, updatedAt: new Date().toISOString() } : a))
       );
-      void updateAppointmentStatus(id, { status });
+      updateAppointmentStatus(id, { status })
+        .then((res) => {
+          if (!res.ok) console.error('updateAppointmentStatus failed:', res.error);
+        })
+        .catch((err) => console.error('updateAppointmentStatus failed:', err));
     },
     []
   );
@@ -398,7 +441,8 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     [appointments]
   );
 
-  const value: AppointmentContextType = {
+  const value: AppointmentContextType = useMemo(
+    () => ({
     appointments,
     filteredAppointments,
     filters,
@@ -426,7 +470,31 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     dentists,
     services,
     patients,
-  };
+    }),
+    [
+      appointments,
+      filteredAppointments,
+      filters,
+      setFilters,
+      calendarView,
+      selectedDate,
+      selectedAppointment,
+      formOpen,
+      editingAppointment,
+      reschedulingAppointment,
+      createAppointment,
+      updateAppointment,
+      cancelAppointment,
+      rescheduleAppointment,
+      updateStatus,
+      getAppointmentHistory,
+      getAppointmentsForDate,
+      getAppointmentsForDateRange,
+      dentists,
+      services,
+      patients,
+    ]
+  );
 
   return <AppointmentContext.Provider value={value}>{children}</AppointmentContext.Provider>;
 }

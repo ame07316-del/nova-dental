@@ -70,8 +70,12 @@ export function SessionTimer({
     });
   }, [plannedDuration]);
 
-  // Start timer
+  // Start timer (clears any prior interval first)
   const startTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     startTimeRef.current = Date.now();
     setTimerState((prev) => ({ ...prev, isRunning: true, status: 'on-time' }));
     tick();
@@ -85,6 +89,16 @@ export function SessionTimer({
       intervalRef.current = null;
     }
     setTimerState((prev) => ({ ...prev, isRunning: false }));
+  }, []);
+
+  // Clear interval on unmount (no setState after unmount)
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, []);
 
   // Handle start session

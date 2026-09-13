@@ -16,11 +16,10 @@ const buttonVariants = cva(
         'secondary-dark': 'bg-dark-surface text-dark-text border border-dark-border hover:bg-dark-surface-alt',
         outline: 'bg-transparent text-nova-primary border border-nova-primary hover:bg-nova-primary-light',
         ghost: 'bg-transparent text-nova-text-secondary hover:bg-nova-muted hover:text-nova-text',
-        gold: 'bg-nova-accent text-nova-text-dark hover:bg-nova-accent-dark shadow-soft',
+        gold: 'bg-nova-accent text-nova-primary-dark hover:bg-nova-accent-dark shadow-soft',
         'gold-dark': 'bg-nova-accent-dark text-white hover:opacity-90',
         danger: 'bg-nova-error text-white hover:bg-red-700 shadow-soft',
         success: 'bg-nova-success text-white hover:bg-green-700 shadow-soft',
-        small: 'px-3 py-1.5 text-xs',
         'icon-only': 'p-2',
       },
       size: {

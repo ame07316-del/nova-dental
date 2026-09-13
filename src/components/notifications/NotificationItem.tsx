@@ -7,8 +7,9 @@ import { NotificationIcon } from './NotificationIcon';
 import { cn } from '@/lib/utils';
 
 function formatTimeAgo(dateStr: string): string {
-  const now = new Date();
   const then = new Date(dateStr);
+  if (Number.isNaN(then.getTime())) return '';
+  const now = new Date();
   const diffMs = now.getTime() - then.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   if (diffMin < 1) return 'Just now';

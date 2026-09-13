@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +11,16 @@ import { useRouter } from 'next/navigation';
 export function BookingSuccess() {
   const { language } = useLanguage();
   const router = useRouter();
+  const [reference, setReference] = useState<string | null>(null);
+
+  // Show the real booking reference from the just-completed booking.
+  useEffect(() => {
+    try {
+      setReference(sessionStorage.getItem('nova-last-booking'));
+    } catch {
+      setReference(null);
+    }
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 via-nova-bg to-nova-surface p-4">
@@ -33,7 +44,9 @@ export function BookingSuccess() {
           <div className="mt-6 space-y-3 rounded-lg bg-nova-muted/30 p-4 text-left">
             <div className="flex items-center justify-between">
               <span className="text-sm text-nova-text-muted">{language === 'ar' ? 'رقم الحجز' : 'Booking Reference'}</span>
-              <span className="text-sm font-bold text-nova-primary">#NVA-20260911-001</span>
+              <span className="text-sm font-bold text-nova-primary">
+                {reference ? `#${reference.slice(0, 8).toUpperCase()}` : (language === 'ar' ? 'تم التأكيد' : 'Confirmed')}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-nova-text-muted">{language === 'ar' ? 'الدفع' : 'Payment'}</span>

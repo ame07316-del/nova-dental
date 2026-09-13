@@ -9,8 +9,8 @@ import { NotificationCenter } from '@/components/notifications';
 import { useLiveData } from '@/hooks/useLiveData';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { useLanguage } from '@/components/layout/LanguageProvider';
-import { useTheme } from '@/hooks/useTheme';
-import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/layout/ThemeProvider';
+import { cn, formatDateInput } from '@/lib/utils';
 import { useState } from 'react';
 import { notify } from '@/components/ui/Notification';
 
@@ -49,12 +49,14 @@ export function DoctorDashboardContent() {
     (apt) => apt.dentistId === currentDentist?.id
   );
 
+  const todayStr = formatDateInput(new Date());
+
   const todayAppointments = dentistAppointments.filter(
-    (apt) => apt.date === new Date().toISOString().split('T')[0]
+    (apt) => apt.date === todayStr
   );
 
   const upcomingAppointments = dentistAppointments.filter(
-    (apt) => apt.date > new Date().toISOString().split('T')[0] && apt.status !== 'cancelled'
+    (apt) => apt.date > todayStr && apt.status !== 'cancelled'
   );
 
   const historyAppointments = dentistAppointments.filter(
@@ -149,7 +151,7 @@ export function DoctorDashboardContent() {
             <Card variant="stat">
               <p className="text-sm text-nova-text-secondary">Sessions Today</p>
               <p className="mt-1 text-3xl font-bold text-nova-text">
-                {sessions.filter((s) => s.date === new Date().toISOString().split('T')[0]).length}
+                {sessions.filter((s) => s.date === todayStr).length}
               </p>
             </Card>
           </div>

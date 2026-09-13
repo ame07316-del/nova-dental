@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useAuth } from './AuthProvider';
 
 // App context for global state
@@ -29,14 +29,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSidebarOpen((prev) => !prev);
   }, []);
 
+  const pendingTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    const pending = pendingTimeouts.current;
+    return () => {
+      pending.forEach(clearTimeout);
+      pendingTimeouts.current = [];
+    };
+  }, []);
+
   const addNotification = useCallback((type: string, message: string) => {
     const id = Date.now().toString();
     setNotifications((prev) => [...prev, { id, type, message, time: new Date().toLocaleTimeString() }]);
 
     // Auto-remove after 5 seconds
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 5000);
+    pendingTimeouts.current.push(timer);
   }, []);
 
   const removeNotification = useCallback((id: string) => {

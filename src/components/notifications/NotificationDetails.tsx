@@ -8,7 +8,9 @@ import { NotificationIcon } from './NotificationIcon';
 import { cn } from '@/lib/utils';
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -20,10 +22,12 @@ function formatDate(dateStr: string): string {
 
 function formatTime(time: string): string {
   if (!time) return 'N/A';
-  const [h, m] = time.split(':').map(Number);
+  const m = time.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return 'N/A';
+  const h = Number(m[1]);
   const period = h >= 12 ? 'PM' : 'AM';
   const hour12 = h % 12 || 12;
-  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+  return `${hour12}:${m[2]} ${period}`;
 }
 
 export function NotificationDetails() {

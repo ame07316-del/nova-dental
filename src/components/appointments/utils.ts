@@ -19,8 +19,10 @@ export function generateTimeSlots(startHour = CLINIC_OPEN, endHour = CLINIC_CLOS
 }
 
 export function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
+  if (typeof time !== 'string') return NaN;
+  const m = time.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return NaN;
+  return Number(m[1]) * 60 + Number(m[2]);
 }
 
 export function minutesToTime(minutes: number): string {
@@ -34,11 +36,17 @@ export function calculateEndTime(startTime: string, durationMinutes: number): st
 }
 
 export function getDayName(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+  if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
 export function formatDateDisplay(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+  if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -47,10 +55,24 @@ export function formatDateDisplay(dateStr: string): string {
 }
 
 export function formatTimeDisplay(time: string): string {
-  const [h, m] = time.split(':').map(Number);
+  const mins = timeToMinutes(time);
+  if (!Number.isFinite(mins)) return '';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
   const period = h >= 12 ? 'PM' : 'AM';
   const hour12 = h % 12 || 12;
   return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+export function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function todayLocalString(): string {
+  return toLocalDateString(new Date());
 }
 
 export function getWeekDates(dateStr: string): string[] {
@@ -61,7 +83,7 @@ export function getWeekDates(dateStr: string): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const dt = new Date(monday);
     dt.setDate(monday.getDate() + i);
-    return dt.toISOString().split('T')[0];
+    return toLocalDateString(dt);
   });
 }
 
@@ -72,7 +94,7 @@ export function getMonthDates(year: number, month: number): string[] {
   const dates: string[] = [];
   for (let i = -startPad; i < 42 - startPad; i++) {
     const dt = new Date(year, month, 1 + i);
-    dates.push(dt.toISOString().split('T')[0]);
+    dates.push(toLocalDateString(dt));
   }
   return dates;
 }
@@ -82,7 +104,7 @@ export function isSameDay(a: string, b: string): boolean {
 }
 
 export function isToday(dateStr: string): boolean {
-  return dateStr === new Date().toISOString().split('T')[0];
+  return dateStr === todayLocalString();
 }
 
 export function checkConflict(
@@ -93,6 +115,12 @@ export function checkConflict(
   const conflicts: AppointmentConflict[] = [];
   const newStart = timeToMinutes(formData.startTime);
   const newEnd = timeToMinutes(formData.endTime);
+
+  // Invalid times must never silently pass detection (NaN defeats every < > check).
+  if (!Number.isFinite(newStart) || !Number.isFinite(newEnd) || newEnd <= newStart) {
+    conflicts.push({ type: 'outside-hours', message: 'Please choose a valid start and end time' });
+    return conflicts;
+  }
 
   if (newStart < CLINIC_OPEN * 60 || newEnd > CLINIC_CLOSE * 60) {
     conflicts.push({ type: 'outside-hours', message: 'Appointment is outside clinic hours (9:00 AM - 6:00 PM)' });
@@ -118,19 +146,11 @@ export function checkConflict(
     }
   }
 
-  const breakStart13 = 13 * 60;
-  const breakEnd14 = 14 * 60;
-  if (newStart < breakEnd14 && newEnd > breakStart13) {
-    const overlapsBreak = dentistAppts.some((a) => {
-      const s = timeToMinutes(a.startTime);
-      const e = timeToMinutes(a.endTime);
-      return s < breakEnd14 && e > breakStart13;
-    });
-    if (!overlapsBreak && newStart < breakEnd14 && newEnd > breakStart13) {
-      if (newStart < breakStart13 || newEnd > breakEnd14) {
-        conflicts.push({ type: 'break', message: 'Appointment overlaps with lunch break (1:00 PM - 2:00 PM)' });
-      }
-    }
+  // Any overlap with the lunch break (1:00 PM - 2:00 PM) is a conflict.
+  const lunchStart = 13 * 60;
+  const lunchEnd = 14 * 60;
+  if (newStart < lunchEnd && newEnd > lunchStart) {
+    conflicts.push({ type: 'break', message: 'Appointment overlaps with lunch break (1:00 PM - 2:00 PM)' });
   }
 
   return conflicts;
@@ -160,7 +180,7 @@ export function getDatesInRange(from: string, to: string): string[] {
   const current = new Date(from + 'T00:00:00');
   const end = new Date(to + 'T00:00:00');
   while (current <= end) {
-    dates.push(current.toISOString().split('T')[0]);
+    dates.push(toLocalDateString(current));
     current.setDate(current.getDate() + 1);
   }
   return dates;

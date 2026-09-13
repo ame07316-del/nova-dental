@@ -5,7 +5,7 @@ import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 
 export default function GalleryPage() {
   return (
-    <AppLayout>
+    <AppLayout requireAuth={false} showSidebar={false}>
       <GalleryGrid />
     </AppLayout>
   );

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import type { ReactElement } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from './AppProvider';
 import { useLanguage } from './LanguageProvider';
-import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 
 // Navigation items
 export const navItems = [
@@ -21,14 +21,14 @@ export const navItems = [
     label: { en: 'Appointments', ar: 'المواعيد' },
     href: '/appointments',
     icon: 'calendar',
-    roles: ['doctor', 'admin'],
+    roles: ['doctor', 'secretary', 'admin'],
   },
   {
     id: 'patients',
     label: { en: 'Patients', ar: 'المرضى' },
     href: '/patients',
     icon: 'users',
-    roles: ['doctor', 'admin'],
+    roles: ['doctor', 'secretary', 'admin'],
   },
   {
     id: 'dentists',
@@ -42,21 +42,21 @@ export const navItems = [
     label: { en: 'Services', ar: 'الخدمات' },
     href: '/services',
     icon: 'service',
-    roles: ['doctor', 'admin'],
+    roles: ['doctor', 'secretary', 'admin'],
   },
   {
     id: 'gallery',
     label: { en: 'Gallery', ar: 'المعرض' },
     href: '/gallery',
     icon: 'image',
-    roles: ['doctor', 'admin'],
+    roles: ['doctor', 'secretary', 'admin'],
   },
   {
     id: 'settings',
     label: { en: 'Settings', ar: 'الإعدادات' },
     href: '/settings',
     icon: 'settings',
-    roles: ['doctor', 'admin'],
+    roles: ['doctor', 'secretary', 'admin'],
   },
 ] as const;
 
@@ -64,9 +64,14 @@ export const navItems = [
 export function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useApp();
   const pathname = usePathname();
+  const router = useRouter();
   const { language } = useLanguage();
 
-  // This needs to be fixed - import approach
+  const handleLogout = async () => {
+    await getSupabaseBrowser().auth.signOut();
+    router.replace('/login');
+  };
+
   return (
       <aside
         className={`
@@ -117,7 +122,7 @@ export function Sidebar() {
             const isActive = pathname === item.href;
             return (
               <li key={item.id}>
-                <a
+                <Link
                   href={item.href}
                   className={`
                     flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200
@@ -130,7 +135,7 @@ export function Sidebar() {
                 >
                   <Icon name={item.icon} />
                   {sidebarOpen && <span>{item.label[language === 'ar' ? 'ar' : 'en']}</span>}
-                </a>
+                </Link>
               </li>
             );
           })}
@@ -138,7 +143,10 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-nova-border p-3">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-nova-text-secondary hover:bg-nova-muted hover:text-nova-text transition-colors">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-nova-text-secondary hover:bg-nova-muted hover:text-nova-text transition-colors"
+        >
           <Icon name="logout" />
           {sidebarOpen && <span>Logout</span>}
         </button>
@@ -149,7 +157,7 @@ export function Sidebar() {
 
 // Icon component
 function Icon({ name, className = '' }: { name: string; className?: string }) {
-  const iconPaths: Record<string, JSX.Element> = {
+  const iconPaths: Record<string, ReactElement> = {
     grid: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />

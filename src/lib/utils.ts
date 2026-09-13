@@ -18,6 +18,7 @@ export function formatDate(
   options: Intl.DateTimeFormatOptions = {}
 ): string {
   const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
@@ -32,19 +33,30 @@ export function formatDate(
  * Format a date for input (YYYY-MM-DD)
  */
 export function formatDateInput(date: string | Date): string {
-  const d = new Date(date);
-  return d.toISOString().split('T')[0];
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
  * Format time (HH:MM)
  */
 export function formatTime(time: string): string {
-  const [hours, minutes] = time.split(':');
+  if (!time || typeof time !== 'string') return '';
+  const parts = time.split(':');
+  if (parts.length < 2) return time;
+  const [hours, minutes] = parts;
   const h = parseInt(hours, 10);
+  if (Number.isNaN(h) || h < 0 || h > 23) return time;
+  if (!/^\d{1,2}$/.test(minutes)) return time;
+  const m = parseInt(minutes, 10);
+  if (m < 0 || m > 59) return time;
   const period = h >= 12 ? 'PM' : 'AM';
   const hour12 = h % 12 || 12;
-  return `${hour12}:${minutes} ${period}`;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
 }
 
 /**
@@ -68,8 +80,10 @@ export function generateId(): string {
  * Truncate text with ellipsis
  */
 export function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return `${text.substring(0, maxLength)}...`;
+  if (text == null) return '';
+  const str = typeof text === 'string' ? text : String(text);
+  if (str.length <= maxLength) return str;
+  return `${str.substring(0, maxLength)}...`;
 }
 
 /**
@@ -119,7 +133,9 @@ export function capitalize(str: string): string {
  * Get initials from name
  */
 export function getInitials(firstName: string, lastName: string): string {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const f = (firstName ?? '').trim().charAt(0) || '';
+  const l = (lastName ?? '').trim().charAt(0) || '';
+  return `${f}${l}`.toUpperCase();
 }
 
 /**
@@ -133,6 +149,8 @@ export const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: stri
   cancelled: { bg: '#FEE2E2', text: '#991B1B', dot: '#DC2626', label: 'Cancelled' },
   'no-show': { bg: '#F1F5F9', text: '#475569', dot: '#64748B', label: 'No Show' },
   rescheduled: { bg: '#EDE9FE', text: '#5B21B6', dot: '#8B5CF6', label: 'Rescheduled' },
+  waiting: { bg: '#FEF3C7', text: '#92400E', dot: '#D97706', label: 'Waiting' },
+  delayed: { bg: '#FEE2E2', text: '#991B1B', dot: '#DC2626', label: 'Delayed' },
   urgent: { bg: '#FEE2E2', text: '#991B1B', dot: '#DC2626', label: 'Urgent' },
   vip: { bg: '#FFF7ED', text: '#9A3412', dot: '#FBBF24', label: 'VIP' },
 };

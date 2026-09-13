@@ -60,7 +60,9 @@ export function AppointmentHistory({ appointmentId }: { appointmentId: string })
                 <span className="text-[10px] text-nova-text-muted">by {entry.performedBy}</span>
               </div>
               <p className="text-[10px] text-nova-text-muted">
-                {formatDateDisplay(entry.timestamp.split('T')[0])} at {formatTimeDisplay(entry.timestamp.split('T')[1]?.substring(0, 5) || '00:00')}
+                {entry.timestamp
+                  ? `${formatDateDisplay(entry.timestamp.split('T')[0])} at ${formatTimeDisplay(entry.timestamp.split('T')[1]?.substring(0, 5) || '00:00')}`
+                  : '—'}
               </p>
               {entry.changes && entry.changes.length > 0 && (
                 <div className="mt-1 space-y-0.5">

@@ -129,21 +129,21 @@ export function BookingFlow() {
     }
 
     let cancelled = false;
-    const targets =
-      booking.dentistId || booking.preferredDentist
-        ? booking.dentistId
-          ? [booking.dentistId]
-          : dentists.map((d) => d.id)
-        : dentists.map((d) => d.id);
+    // A selected dentist restricts the lookup; otherwise ("any dentist" mode
+    // or nothing chosen yet) fan out to all dentists.
+    const targets = booking.dentistId ? [booking.dentistId] : dentists.map((d) => d.id);
 
     const load = async () => {
       setSlotsLoading(true);
+      const results = await Promise.all(
+        targets.map((dentistId) => getAvailableSlots(dentistId, booking.serviceId, booking.date))
+      );
+      if (cancelled) return;
       const map: Record<string, AvailabilitySlot[]> = {};
-      for (const dentistId of targets) {
-        const res = await getAvailableSlots(dentistId, booking.serviceId, booking.date);
-        if (!cancelled && res.ok && res.data.length > 0) map[dentistId] = res.data;
-      }
-      if (!cancelled) setSlotsByDentist(map);
+      results.forEach((res, i) => {
+        if (res.ok && res.data.length > 0) map[targets[i]] = res.data;
+      });
+      setSlotsByDentist(map);
       setSlotsLoading(false);
     };
 
@@ -155,7 +155,8 @@ export function BookingFlow() {
 
   // Dates that are actually in the selected dentist's schedule (or union across dentists)
   const availableDates = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const source = booking.dentistId
       ? schedules.filter((s) => s.dentistId === booking.dentistId)
       : schedules;
@@ -266,10 +267,11 @@ export function BookingFlow() {
 
   const handleDentistSelect = (dentistId: string) => {
     const dentist = dentists.find((d) => d.id === dentistId);
+    const name = dentist ? `${dentist.firstName ?? ''} ${dentist.lastName ?? ''}`.trim() : '';
     setBooking((prev) => ({
       ...prev,
       dentistId,
-      dentistName: dentist?.firstName + ' ' + dentist?.lastName || '',
+      dentistName: name,
     }));
   };
 
@@ -321,6 +323,11 @@ export function BookingFlow() {
 
     if (res.ok) {
       notify('success', 'Appointment Booked!', `${booking.serviceName} on ${booking.date} at ${booking.time}. Payment is made at the clinic cashier.`);
+      try {
+        sessionStorage.setItem('nova-last-booking', res.data.appointmentId);
+      } catch {
+        // storage unavailable — success page falls back gracefully
+      }
       router.push('/booking-success');
     } else {
       notify('error', 'Booking Failed', res.error);
@@ -748,7 +755,7 @@ export function BookingFlow() {
                 {language === 'ar' ? 'التالي' : 'Next'}
               </Button>
             ) : booking.step === 6 ? (
-              <Button onClick={() => setBooking((prev) => ({ ...prev, step: 7 }))}>
+              <Button onClick={handleNext}>
                 {language === 'ar' ? 'مراجعة' : 'Review'}
               </Button>
             ) : (

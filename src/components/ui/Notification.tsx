@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { cn } from '@/lib/utils';
 
 // Notification types
@@ -29,7 +29,7 @@ export function Toast({ notification, onDismiss }: ToastProps) {
     return () => clearTimeout(timer);
   }, [notification.id, onDismiss]);
 
-  const icons: Record<NotificationType, JSX.Element> = {
+  const icons: Record<NotificationType, ReactElement> = {
     info: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
     success: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
     warning: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
@@ -37,10 +37,10 @@ export function Toast({ notification, onDismiss }: ToastProps) {
   };
 
   const borderColors: Record<NotificationType, string> = {
-    info: 'border-l-4 border-l-nova-info',
-    success: 'border-l-4 border-l-nova-success',
-    warning: 'border-l-4 border-l-nova-warning',
-    error: 'border-l-4 border-l-nova-error',
+    info: 'border-s-4 border-s-nova-info',
+    success: 'border-s-4 border-s-nova-success',
+    warning: 'border-s-4 border-s-nova-warning',
+    error: 'border-s-4 border-s-nova-error',
   };
 
   const iconColors: Record<NotificationType, string> = {
@@ -94,7 +94,7 @@ export function NotificationContainer() {
   if (notifications.length === 0) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-50 flex flex-col gap-2" dir="ltr">
+    <div className="fixed top-20 end-4 z-50 flex flex-col gap-2">
       {notifications.map((notification) => (
         <Toast key={notification.id} notification={notification} onDismiss={dismiss} />
       ))}

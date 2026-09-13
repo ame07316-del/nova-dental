@@ -3,7 +3,7 @@ import { getSessionUser } from '@/app/actions';
 
 /**
  * Server-side guard: redirects to `/login` if not signed in,
- * and to `/dashboard` if the user is not a staff member.
+ * and to `/` if the user is not a staff member.
  */
 export async function requireStaffGuard() {
   const user = await getSessionUser();
@@ -12,7 +12,7 @@ export async function requireStaffGuard() {
   }
   const isStaff = user.role === 'doctor' || user.role === 'secretary' || user.role === 'admin';
   if (!isStaff) {
-    redirect('/dashboard');
+    redirect('/');
   }
   return user;
 }

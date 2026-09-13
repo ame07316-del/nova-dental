@@ -103,13 +103,16 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = storage.get<Language>('nova-language', 'ar');
-      return stored;
+  const [language, setLanguageState] = useState<Language>('ar');
+
+  // Sync from storage on mount only. Reading storage in the state
+  // initializer causes hydration mismatches, so default to 'ar' first.
+  useEffect(() => {
+    const stored = storage.get<Language>('nova-language', 'ar');
+    if (stored === 'en' || stored === 'ar') {
+      setLanguageState(stored);
     }
-    return 'ar';
-  });
+  }, []);
 
   const setLanguage = useCallback((lang: Language) => {
     storage.set('nova-language', lang);

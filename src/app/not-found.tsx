@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
@@ -20,12 +20,12 @@ export default function NotFound() {
           </p>
         </div>
         <div className="flex gap-3">
-          <a href="/dashboard" className="btn btn-primary">
+          <Link href="/dashboard" className="btn btn-primary">
             Go to Dashboard
-          </a>
-          <a href="/" className="btn btn-outline">
+          </Link>
+          <Link href="/" className="btn btn-outline">
             Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppointments } from './AppointmentProvider';
 import { Drawer } from '@/components/ui/Drawer';
-import { calculateEndTime, timeToMinutes, formatTimeDisplay } from './utils';
+import { calculateEndTime, timeToMinutes, formatTimeDisplay, toLocalDateString } from './utils';
 import type { AppointmentFormData, AppointmentConflict } from './types';
 import { STATUS_LABELS, STATUS_COLORS } from './types';
 
@@ -42,7 +42,7 @@ export function AppointmentForm({ open, onClose, editMode = false }: Appointment
     patientId: '',
     dentistId: '',
     serviceId: '',
-    date: new Date().toISOString().split('T')[0],
+    date: toLocalDateString(new Date()),
     startTime: '09:00',
     endTime: '09:30',
     treatmentType: '',
@@ -54,13 +54,15 @@ export function AppointmentForm({ open, onClose, editMode = false }: Appointment
 
   useEffect(() => {
     if (target) {
+      // Rescheduling starts from the current booking so every required
+      // input is filled; the user then picks the new slot.
       setFormData({
         patientId: target.patientId,
         dentistId: target.dentistId,
         serviceId: target.serviceId,
-        date: isReschedule ? '' : target.date,
-        startTime: isReschedule ? '' : target.startTime,
-        endTime: isReschedule ? '' : target.endTime,
+        date: target.date,
+        startTime: target.startTime,
+        endTime: target.endTime,
         treatmentType: target.treatmentType,
         notes: target.notes,
       });
@@ -69,7 +71,7 @@ export function AppointmentForm({ open, onClose, editMode = false }: Appointment
         patientId: '',
         dentistId: '',
         serviceId: '',
-        date: new Date().toISOString().split('T')[0],
+        date: toLocalDateString(new Date()),
         startTime: '09:00',
         endTime: '09:30',
         treatmentType: '',
@@ -120,10 +122,6 @@ export function AppointmentForm({ open, onClose, editMode = false }: Appointment
       setShowConflictWarning(true);
     }
   };
-
-  const selectedDentistAppts = target
-    ? []
-    : [];
 
   const title = isReschedule
     ? 'Reschedule Appointment'

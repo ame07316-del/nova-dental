@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useAuth as UseAuthBase } from '@/components/layout/AuthProvider';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { notify } from '@/components/ui/Notification';
 import type { Patient } from '@/lib/supabase/types';
 
@@ -16,7 +16,7 @@ export function useAuthExtended() {
     if (!user) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('patients').select('*').eq('user_id', user.id).single();
+      const { data, error } = await getSupabaseBrowser().from('patients').select('*').eq('user_id', user.id).single();
       if (!error && data) {
         setPatient(data as Patient);
       }
@@ -63,7 +63,7 @@ export function useRoles() {
   }, [roles]);
 
   const isAdmin = hasRole('admin');
-  const isDentist = hasRole('dentist');
+  const isDentist = hasRole('doctor');
   const isPatient = hasRole('patient');
 
   return {

@@ -1,5 +1,4 @@
 export type { Patient, Dentist, Appointment, Service, GalleryImage, Notification as NotificationType, Billing, Schedule, AuthUser, Session } from '@/lib/supabase/types';
-export { supabase } from '@/lib/supabase/client';
 
 // App-wide type exports
 export interface NavItem {

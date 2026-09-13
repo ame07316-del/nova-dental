@@ -84,6 +84,9 @@ export interface Service {
   name: string;
   description: string;
   category: string;
+  nameAr?: string;
+  descriptionAr?: string;
+  categoryAr?: string;
   price: number;
   currency: string | null;
   durationMinutes: number;
@@ -186,7 +189,7 @@ export interface AuthUser {
     first_name?: string;
     last_name?: string;
     avatar_url?: string;
-    role?: 'patient' | 'dentist' | 'admin';
+    role?: 'patient' | 'doctor' | 'secretary' | 'dentist' | 'admin';
   } | null;
   appMetadata: Record<string, unknown> | null;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDemoData } from '@/components/layout/DemoDataProvider';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui';
 import { Skeleton, CardSkeleton } from '@/components/ui/Skeleton';
 import { notify } from '@/components/ui/Notification';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDateInput } from '@/lib/utils';
 
 // Dashboard content using demo data
 export function DashboardContent() {
@@ -17,10 +17,13 @@ export function DashboardContent() {
   const [error, setError] = useState(false);
   const { appointments, patients, billing, notifications } = useDemoData();
 
-  // Simulate loading
-  setTimeout(() => {
-    setLoading(false);
-  }, 800);
+  // Simulate loading (once on mount)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setLoading(false);
+    }, 800);
+    return () => clearTimeout(t);
+  }, []);
 
   if (loading) {
     return (
@@ -54,7 +57,7 @@ export function DashboardContent() {
   }
 
   // Calculate stats from demo data
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatDateInput(new Date());
   const todayAppointments = appointments.filter((apt) => apt.date === today);
   const confirmedToday = todayAppointments.filter((apt) => apt.status === 'confirmed').length;
   const pendingToday = todayAppointments.filter((apt) => apt.status === 'pending').length;

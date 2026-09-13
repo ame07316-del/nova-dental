@@ -25,6 +25,8 @@ export const APPOINTMENT_STATUSES = [
   'cancelled',
   'no-show',
   'rescheduled',
+  'waiting',
+  'delayed',
 ] as const;
 
 // Time slots for appointments

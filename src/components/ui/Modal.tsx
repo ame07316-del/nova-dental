@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
@@ -64,6 +64,22 @@ export function Modal({
   size = 'md',
   closeOnOverlay = true,
 }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+
+  // Escape to close + initial focus
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    dialogRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, onOpenChange]);
+
   if (!open) return null;
 
   const sizeClasses = {
@@ -79,22 +95,38 @@ export function Modal({
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
         onClick={() => closeOnOverlay && onOpenChange(false)}
+        onKeyDown={(e) => {
+          if (!closeOnOverlay) return;
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+            e.preventDefault();
+            onOpenChange(false);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label="Close dialog"
       />
       {/* Modal content */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={cn(
-          'relative z-10 w-full animate-slide-up rounded-modal bg-nova-surface shadow-prominent',
+          'relative z-10 w-full animate-slide-up rounded-modal bg-nova-surface shadow-prominent focus:outline-none',
           sizeClasses[size]
         )}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-nova-border px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-nova-text">{title}</h2>
+            <h2 id={titleId} className="text-xl font-bold text-nova-text">{title}</h2>
             {description && <p className="text-sm text-nova-text-secondary">{description}</p>}
           </div>
           <button
             onClick={() => onOpenChange(false)}
+            aria-label="Close dialog"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-nova-text-muted hover:bg-nova-muted hover:text-nova-text transition-colors"
           >
             <X size={18} />

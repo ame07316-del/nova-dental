@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/dental/AvatarsAndMore';
 import { useDemoData } from '@/components/layout/DemoDataProvider';
 import { useLanguage } from '@/components/layout/LanguageProvider';
-import { useTheme } from '@/hooks/useTheme';
 import { notify } from '@/components/ui/Notification';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -117,7 +116,7 @@ export function SecretaryNotificationCenter() {
       <CardBody className="space-y-2">
         <div className="space-y-1">
           {displayedNotifications.map((notification) => {
-            const config = typeConfig[notification.type];
+            const config = typeConfig[notification.type] ?? typeConfig.info;
             return (
               <button key={notification.id} onClick={() => notify(toToastType(notification.type), notification.title, notification.message)}
                 className={cn('flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors hover:bg-nova-muted/30', !notification.read && 'bg-nova-muted/10')}>

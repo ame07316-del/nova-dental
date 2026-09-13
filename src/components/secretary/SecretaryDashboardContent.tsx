@@ -8,7 +8,7 @@ import { NotificationCenter } from '@/components/notifications';
 import { ClinicOverview, TodaySchedule, AppointmentCalendar } from './ClinicOverview';
 import { useLiveData } from '@/hooks/useLiveData';
 import { useLanguage } from '@/components/layout/LanguageProvider';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/components/layout/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 

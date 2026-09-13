@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchAppointments,
   fetchDentists,
@@ -45,6 +45,15 @@ export function useLiveData(scope: 'mine' | 'all' = 'all') {
   const [data, setData] = useState<LiveData>(INITIAL);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Guards slow fetches resolving after unmount/scope change.
+  const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, [scope]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,6 +78,8 @@ export function useLiveData(scope: 'mine' | 'all' = 'all') {
       getMyDentist(),
       getPublicCatalog(),
     ]);
+
+    if (cancelledRef.current) return;
 
     const errors: string[] = [];
     const list = <T,>(res: ActionResult<T[]>): T[] => (res.ok ? res.data : (errors.push(res.error), []));

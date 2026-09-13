@@ -39,7 +39,7 @@ export function EmptyState({
       <p className="mt-2 text-sm text-nova-text-secondary">{description}</p>
       {action && (
         <div className="mt-6">
-          <Button {...action} />
+          <Button onClick={action.onClick}>{action.label}</Button>
         </div>
       )}
     </div>
@@ -126,7 +126,7 @@ export function SuccessState({
       <p className="mt-2 text-sm text-nova-text-secondary">{message}</p>
       {action && (
         <div className="mt-6">
-          <Button {...action} />
+          <Button onClick={action.onClick}>{action.label}</Button>
         </div>
       )}
     </div>

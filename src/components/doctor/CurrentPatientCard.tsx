@@ -8,6 +8,7 @@ import { SessionTimer } from './SessionTimer';
 import { useLiveData } from '@/hooks/useLiveData';
 import { startLiveSession, endLiveSession } from '@/app/actions';
 import { notify } from '@/components/ui/Notification';
+import { formatDateInput } from '@/lib/utils';
 import { useCallback } from 'react';
 
 export function CurrentPatientCard() {
@@ -24,7 +25,7 @@ export function CurrentPatientCard() {
     ? patients.find((p) => p.id === currentAppointment.patientId)
     : null;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatDateInput(new Date());
   const todaysAppointments = appointments.filter(
     (a) => a.date === today && (a.status === 'confirmed' || a.status === 'pending')
   );

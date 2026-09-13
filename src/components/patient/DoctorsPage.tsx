@@ -90,7 +90,9 @@ export function DoctorsPage() {
                       </h3>
                       <p className="text-sm text-nova-text-secondary">{dentist.specialty}</p>
                     </div>
-                    <Badge variant="success" dot>Available</Badge>
+                    <Badge variant={dentist.isActive ? 'success' : 'default'} dot>
+                      {dentist.isActive ? (language === 'ar' ? 'متاح' : 'Available') : (language === 'ar' ? 'غير متاح' : 'Unavailable')}
+                    </Badge>
                   </div>
 
                   <div className="mt-4 flex items-center gap-4 text-sm text-nova-text-secondary">
@@ -113,7 +115,7 @@ export function DoctorsPage() {
                   )}
 
                   <Button className="mt-4 w-full" onClick={() => router.push(`/book?doctor=${dentist.id}`)}>
-                    {language === 'ar' ? 'احجز معه' : 'Book with Dr. {dentist.firstName}'}
+                    {language === 'ar' ? 'احجز معه' : `Book with Dr. ${dentist.firstName}`}
                   </Button>
                 </CardBody>
               </Card>

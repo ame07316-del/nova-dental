@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import type { InternalNotification, NotificationType, NotificationStatus } from './types';
 import type { Notification } from '@/lib/supabase/types';
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, dismissNotification as dismissNotificationAction, getSessionUser } from '@/app/actions';
@@ -27,7 +27,8 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 const NOTIFICATION_ID_PREFIX = 'notif-int-';
 const MAX_UNREAD_DISPLAY = 9;
 
-function mapDatabaseType(type: string): NotificationType {
+function mapDatabaseType(type: unknown): NotificationType {
+  if (typeof type !== 'string') return 'appointment-delay';
   switch (type) {
     case 'success':
       return 'session-completion';
@@ -49,8 +50,8 @@ function toInternal(notification: Notification): InternalNotification {
     id: notification.id,
     type: mapDatabaseType(notification.type),
     status: notification.read ? 'read' : 'pending',
-    title: notification.title,
-    message: notification.message,
+    title: notification.title ?? '',
+    message: notification.message ?? '',
     appointmentId: notification.relatedId ?? '',
     patientName: '',
     dentistName: '',
@@ -60,7 +61,7 @@ function toInternal(notification: Notification): InternalNotification {
     originalDate: '',
     newDate: '',
     reason: '',
-    createdAt: notification.createdAt,
+    createdAt: notification.createdAt ?? new Date().toISOString(),
     readAt: notification.read ? notification.createdAt : undefined,
   };
 }
@@ -77,7 +78,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     const resolve = async () => {
-      const sessionUser = await getSessionUser();
+      let sessionUser: Awaited<ReturnType<typeof getSessionUser>> = null;
+      try {
+        sessionUser = await getSessionUser();
+      } catch (err) {
+        console.error('getSessionUser failed:', err);
+      }
       if (!cancelled && sessionUser && (sessionUser.role === 'doctor' || sessionUser.role === 'secretary' || sessionUser.role === 'admin')) {
         setIsStaffUser(true);
       } else if (!cancelled) {
@@ -93,9 +99,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications([]);
       return;
     }
-    const res = await fetchNotifications();
-    if (res.ok) {
-      setNotifications(res.data.list.map(toInternal));
+    try {
+      const res = await fetchNotifications();
+      if (res.ok) {
+        setNotifications(res.data.list.map(toInternal));
+      } else {
+        console.error('fetchNotifications failed:', res.error);
+      }
+    } catch (err) {
+      console.error('fetchNotifications failed:', err);
     }
   }, [isStaffUser]);
 
@@ -115,7 +127,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         n.id === id ? { ...n, status: 'read' as NotificationStatus, readAt: new Date().toISOString() } : n
       )
     );
-    void markNotificationRead(id);
+    markNotificationRead(id)
+      .then((res) => {
+        if (!res.ok) console.error('markNotificationRead failed:', res.error);
+      })
+      .catch((err) => console.error('markNotificationRead failed:', err));
   }, []);
 
   const markAllAsRead = useCallback(() => {
@@ -124,7 +140,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         n.status !== 'dismissed' ? { ...n, status: 'read' as NotificationStatus, readAt: new Date().toISOString() } : n
       )
     );
-    void markAllNotificationsRead();
+    markAllNotificationsRead()
+      .then((res) => {
+        if (!res.ok) console.error('markAllNotificationsRead failed:', res.error);
+      })
+      .catch((err) => console.error('markAllNotificationsRead failed:', err));
   }, []);
 
   const dismissNotification = useCallback((id: string) => {
@@ -133,7 +153,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         n.id === id ? { ...n, status: 'dismissed' as NotificationStatus, dismissedAt: new Date().toISOString() } : n
       )
     );
-    void dismissNotificationAction(id);
+    dismissNotificationAction(id)
+      .then((res) => {
+        if (!res.ok) console.error('dismissNotification failed:', res.error);
+      })
+      .catch((err) => console.error('dismissNotification failed:', err));
+  }, []);
+
+  const pendingTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    const pending = pendingTimeouts.current;
+    return () => {
+      pending.forEach(clearTimeout);
+      pendingTimeouts.current = [];
+    };
   }, []);
 
   const addNotification = useCallback(
@@ -145,13 +179,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       setNotifications((prev) => [newNotif, ...prev]);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === newNotif.id ? { ...n, status: 'sent' as NotificationStatus } : n
           )
         );
       }, 1500);
+      pendingTimeouts.current.push(timer);
     },
     []
   );
@@ -159,7 +194,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const value: NotificationContextType = useMemo(
     () => ({
       notifications,
-      unreadCount: Math.min(unreadCount, MAX_UNREAD_DISPLAY),
+      unreadCount,
       filter,
       setFilter,
       typeFilter,
