@@ -14,7 +14,7 @@ import { formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { notify } from '@/components/ui/Notification';
 import { getPublicCatalog, getDoctorAvailability, getAvailableSlots, bookAppointment } from '@/app/actions';
-import { dentists as demoDentists, services as demoServices } from '@/data/demo';
+import { dentists as demoDentists, services as demoServices, schedules as demoSchedules } from '@/data/demo';
 import type { Service, Dentist, Schedule } from '@/lib/supabase/types';
 
 // ===== ترجمة الأسماء للعربية — الموقع عربي 100% =====
@@ -119,7 +119,12 @@ export function BookingFlow() {
       );
       setSchedules(scheduleResults.flatMap((r) => (r.ok ? r.data : [])));
     } else {
-      notify('error', 'Loading failed', res.error);
+      // Supabase غير متصل أو الكاتالوج فشل → وضع العرض التجريبي:
+      // نكمّل التصفح ببيانات الديمو بدل ما نعلّق المستخدم على رسالة خطأ.
+      setServices(demoServices as unknown as Service[]);
+      setDentists(demoDentists as unknown as Dentist[]);
+      setSchedules(demoSchedules as unknown as Schedule[]);
+      notify('info', 'وضع العرض التجريبي', 'يتم عرض بيانات تجريبية — الحجز الفعلي يتطلب ربط Supabase.');
     }
     setCatalogLoading(false);
   }, []);
@@ -188,9 +193,39 @@ export function BookingFlow() {
       );
       if (cancelled) return;
       const map: Record<string, AvailabilitySlot[]> = {};
+      let rpcFailed = false;
       results.forEach((res, i) => {
         if (res.ok && res.data.length > 0) map[targets[i]] = res.data;
+        if (!res.ok) rpcFailed = true;
       });
+      // وضع الديمو: RPC غير متاح — نولّد المواعيد محليًا من جداول العمل الديمو
+      // بنفس قواعد الحجز الفعلي (خطوات 30 دقيقة، مدة الخدمة، باستثناء البريك).
+      if (rpcFailed && Object.keys(map).length === 0) {
+        const service = services.find((s) => s.id === booking.serviceId);
+        const duration = Math.max(15, Number(service?.durationMinutes ?? 30));
+        for (const dentistId of targets) {
+          const daySchedules = schedules.filter(
+            (s) => s.dentistId === dentistId && s.date === booking.date && s.isAvailable
+          );
+          const slots: AvailabilitySlot[] = [];
+          for (const sch of daySchedules) {
+            const [sh, sm] = sch.startTime.split(':').map(Number);
+            const [eh, em] = sch.endTime.split(':').map(Number);
+            const bs = sch.breakStart ? sch.breakStart.split(':').map(Number) : null;
+            const be = sch.breakEnd ? sch.breakEnd.split(':').map(Number) : null;
+            const bsMin = bs ? bs[0] * 60 + bs[1] : null;
+            const beMin = be ? be[0] * 60 + be[1] : null;
+            for (let t = sh * 60 + sm; t + duration <= eh * 60 + em; t += 30) {
+              // تخطّي أي slot يتراكب مع فترة الراحة
+              if (bsMin !== null && beMin !== null && t < beMin && t + duration > bsMin) continue;
+              const fmt = (mins: number) =>
+                `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+              slots.push({ start_time: fmt(t), end_time: fmt(t + duration) });
+            }
+          }
+          if (slots.length > 0) map[dentistId] = slots;
+        }
+      }
       setSlotsByDentist(map);
       setSlotsLoading(false);
     };
@@ -199,7 +234,7 @@ export function BookingFlow() {
     return () => {
       cancelled = true;
     };
-  }, [booking.serviceId, booking.dentistId, booking.preferredDentist, booking.date, dentists]);
+  }, [booking.serviceId, booking.dentistId, booking.preferredDentist, booking.date, dentists, services, schedules]);
 
   // Dates that are actually in the selected dentist's schedule (or union across dentists)
   const availableDates = useMemo(() => {
@@ -370,7 +405,17 @@ export function BookingFlow() {
     setSubmitting(false);
 
     if (res.ok) {
-      notify('success', 'Appointment Booked!', `${booking.serviceName} on ${booking.date} at ${booking.time}. Payment is made at the clinic cashier.`);
+      if (res.data.demo) {
+        notify(
+          'info',
+          language === 'ar' ? 'وضع العرض التجريبي' : 'Demo Mode',
+          language === 'ar'
+            ? 'تمت محاكاة الحجز بنجاح — لن يُحفظ فعليًا حتى ربط Supabase.'
+            : 'Booking simulated — it will not be saved until Supabase is connected.'
+        );
+      } else {
+        notify('success', 'Appointment Booked!', `${booking.serviceName} on ${booking.date} at ${booking.time}. Payment is made at the clinic cashier.`);
+      }
       try {
         sessionStorage.setItem('nova-last-booking', res.data.appointmentId);
       } catch {
@@ -550,6 +595,13 @@ export function BookingFlow() {
           {booking.step === 3 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-nova-text">{stepTitles[3]}</h2>
+              {availableDates.length === 0 ? (
+                <div className="rounded-lg bg-amber-50 p-4 text-center text-sm text-amber-700">
+                  {language === 'ar'
+                    ? 'لا توجد مواعيد متاحة حاليًا — جرّب تغيّر الدكتور أو راجعنا لاحقًا.'
+                    : 'لا توجد مواعيد متاحة حاليًا — جرّب تغيّر الدكتور أو راجعنا لاحقًا.'}
+                </div>
+              ) : (
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {availableDates.map((date) => {
                   const dayName = new Date(date + 'T00:00:00').toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -568,6 +620,7 @@ export function BookingFlow() {
                   );
                 })}
               </div>
+              )}
               {errors.date && <p className="text-sm text-nova-error">{errors.date}</p>}
             </div>
           )}

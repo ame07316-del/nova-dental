@@ -10,12 +10,18 @@ import { NextResponse, type NextRequest } from 'next/server';
  *
  * Docs: https://supabase.com/docs/guides/auth/server-side/nextjs
  */
+
+// وضع الديمو: نفس أسلوب src/lib/supabase/server.ts — لو متغيرات البيئة ناقصة
+// نستخدم placeholder صالح الصيغة بدل undefined (اللي بيكسر الـ client).
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'demo-anon-key';
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

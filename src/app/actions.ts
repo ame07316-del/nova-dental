@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, isSupabaseServerConfigured } from '@/lib/supabase/server';
 import {
   mapAppointment,
   mapDentist,
@@ -12,6 +12,28 @@ import {
   mapSession,
 } from '@/lib/api/mappers';
 import type { Appointment, Dentist, Notification, Patient, Schedule, Service, DentalSession } from '@/lib/supabase/types';
+
+/** رسالة موحّدة لما Supabase مش متظبط — بدل كراش 500 يظهر وضع العرض التجريبي */
+const SUPABASE_NOT_CONFIGURED =
+  'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart the server.';
+
+/**
+ * فحص خفيف من جهة السيرفر: هل Supabase متظبط وفعلًا قابل للوصول؟
+ * بيستخدم في banner صفحة اللوجين عشان يوضح للمستخدم حالة الاتصال الحقيقية
+ * (مثال: البيئة قد تحجب الدومين — عندها المفاتيح مظبوطة لكن السيرفر مش بيوصل).
+ */
+export async function checkSupabaseServer(): Promise<{ configured: boolean; reachable: boolean }> {
+  if (!isSupabaseServerConfigured()) return { configured: false, reachable: false };
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/health`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+      signal: AbortSignal.timeout(4000),
+    });
+    return { configured: true, reachable: res.ok };
+  } catch {
+    return { configured: true, reachable: false };
+  }
+}
 
 export type ActionResult<T> =
   | { ok: true; data: T }
@@ -55,37 +77,43 @@ function isStaff(role: string | null | undefined): role is StaffRole {
 // ---------------------------------------------------------------------------
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const supabase = createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return null;
+  // أي فشل (Supabase غير متظبط / شبكة / إلخ) → null عشان الـ guard يعمل
+  // redirect أنيق إلى /login بدل ما الصفحة ترجع 500.
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return null;
 
-  const user = data.user;
-  let role: StaffRole | 'patient' | null = null;
+    const user = data.user;
+    let role: StaffRole | 'patient' | null = null;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, first_name, last_name, avatar_url, phone')
-    .eq('id', user.id)
-    .maybeSingle();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, first_name, last_name, avatar_url, phone')
+      .eq('id', user.id)
+      .maybeSingle();
 
-  if (profile) {
-    role = profile.role as StaffRole | 'patient';
-  } else if (user.user_metadata?.role === 'patient') {
-    // No profile yet: only the harmless patient role is honored from metadata.
-    // Staff roles (doctor/secretary/admin) are granted exclusively via the
-    // profiles table by an administrator — never by self-selected signup data.
-    role = 'patient';
+    if (profile) {
+      role = profile.role as StaffRole | 'patient';
+    } else if (user.user_metadata?.role === 'patient') {
+      // No profile yet: only the harmless patient role is honored from metadata.
+      // Staff roles (doctor/secretary/admin) are granted exclusively via the
+      // profiles table by an administrator — never by self-selected signup data.
+      role = 'patient';
+    }
+
+    return {
+      id: user.id,
+      email: user.email ?? '',
+      role,
+      firstName: profile?.first_name ?? user.user_metadata?.first_name,
+      lastName: profile?.last_name ?? user.user_metadata?.last_name,
+      avatarUrl: profile?.avatar_url ?? user.user_metadata?.avatar_url,
+      phone: profile?.phone,
+    };
+  } catch {
+    return null;
   }
-
-  return {
-    id: user.id,
-    email: user.email ?? '',
-    role,
-    firstName: profile?.first_name ?? user.user_metadata?.first_name,
-    lastName: profile?.last_name ?? user.user_metadata?.last_name,
-    avatarUrl: profile?.avatar_url ?? user.user_metadata?.avatar_url,
-    phone: profile?.phone,
-  };
 }
 
 async function requireStaff(): Promise<{ user: SessionUser }> {
@@ -101,6 +129,7 @@ async function requireStaff(): Promise<{ user: SessionUser }> {
 // ---------------------------------------------------------------------------
 
 export async function getPublicCatalog(): Promise<ActionResult<{ services: Service[]; dentists: Dentist[] }>> {
+  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
   const supabase = createClient();
   const [servicesRes, dentistsRes] = await Promise.all([
     supabase.from('services').select('*').eq('is_active', true).order('name', { ascending: true }),
@@ -127,6 +156,7 @@ export async function getPublicCatalog(): Promise<ActionResult<{ services: Servi
 
 /** Real availability: schedules for a dentist over the next N days (public). */
 export async function getDoctorAvailability(dentistId: string): Promise<ActionResult<Schedule[]>> {
+  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
   const supabase = createClient();
   const { data, error } = await supabase
     .from('schedules')
@@ -145,6 +175,7 @@ export async function getAvailableSlots(
   serviceId: string,
   date: string
 ): Promise<ActionResult<AvailableSlot[]>> {
+  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
   const supabase = createClient();
   const { data, error } = await supabase.rpc('get_available_slots', {
     p_dentist_id: dentistId,
@@ -156,7 +187,9 @@ export async function getAvailableSlots(
   return { ok: true, data: (data ?? []) as AvailableSlot[] };
 }
 
-export async function bookAppointment(input: BookAppointmentInput): Promise<ActionResult<{ appointmentId: string }>> {
+export async function bookAppointment(
+  input: BookAppointmentInput
+): Promise<ActionResult<{ appointmentId: string; demo?: boolean }>> {
   if (!input.serviceId || !input.dentistId || !input.date || !input.startTime) {
     return { ok: false, error: 'Missing required booking fields' };
   }
@@ -167,6 +200,12 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Acti
     return { ok: false, error: 'Name and phone are required' };
   }
 
+  if (!isSupabaseServerConfigured()) {
+    // وضع العرض التجريبي: نحاكي نجاح الحجز حتى يكتمل التدفق كاملًا بدون Supabase.
+    // ⚠️ لا تُحفظ أي بيانات حقيقية — لتفعيل الحجز الفعلي اربط Supabase في .env.local
+    const demoId = `demo-${Date.now().toString(36)}`;
+    return { ok: true, data: { appointmentId: demoId, demo: true } };
+  }
   const supabase = createClient();
   const { data, error } = await supabase.rpc('book_appointment', {
     p_payload: {

@@ -5,6 +5,10 @@ import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
+/** رسالة موحّدة لما Supabase مش متظبط (وضع العرض التجريبي) */
+export const SUPABASE_UNAVAILABLE_MSG =
+  'Supabase is not connected. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local and restart the server.';
+
 // Auth user type
 interface AuthUser {
   id: string;
@@ -45,8 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Initialize session from the SHARED browser client (same storage as login).
+  // لو Supabase مش متظبط: منكملش auth خالص — التطبيق يشتغل وضع ديمو
+  // بدل ما useEffect يرمي استثناء ويكرّش الصفحة.
   useEffect(() => {
     const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -67,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const supabase = getSupabaseBrowser();
+    if (!supabase) throw new Error(SUPABASE_UNAVAILABLE_MSG);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     router.refresh();
@@ -74,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (email: string, password: string, data?: Record<string, unknown>) => {
     const supabase = getSupabaseBrowser();
+    if (!supabase) throw new Error(SUPABASE_UNAVAILABLE_MSG);
     // Role is always forced to patient: caller-controlled metadata must never
     // mint staff roles (the staff trigger only honors doctor/secretary and
     // never admin, but public signup has no business requesting either).
@@ -94,6 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      // وضع ديمو: مفيش جلسة أصلًا — نكتفي بتنظيف الحالة والرجوع للرئيسية.
+      setUser(null);
+      router.push('/');
+      router.refresh();
+      return;
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setUser(null);
@@ -103,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = useCallback(async () => {
     const supabase = getSupabaseBrowser();
+    if (!supabase) return;
     const { data } = await supabase.auth.getSession();
     setUser(mapUser(data.session?.user ?? null));
   }, []);

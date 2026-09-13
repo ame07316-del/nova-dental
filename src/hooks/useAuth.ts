@@ -14,9 +14,11 @@ export function useAuthExtended() {
 
   const loadPatient = useCallback(async () => {
     if (!user) return;
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return; // Supabase غير متظبط — وضع ديمو
     try {
       setLoading(true);
-      const { data, error } = await getSupabaseBrowser().from('patients').select('*').eq('user_id', user.id).single();
+      const { data, error } = await supabase.from('patients').select('*').eq('user_id', user.id).single();
       if (!error && data) {
         setPatient(data as Patient);
       }
