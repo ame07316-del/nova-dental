@@ -555,6 +555,13 @@ export function BookingFlow() {
           {booking.step === 3 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-nova-text">{stepTitles[3]}</h2>
+              {availableDates.length === 0 ? (
+                <div className="rounded-lg bg-amber-50 p-4 text-center text-sm text-amber-700">
+                  {language === 'ar'
+                    ? 'لا توجد مواعيد متاحة حاليًا — جرّب تغيّر الدكتور أو راجعنا لاحقًا.'
+                    : 'لا توجد مواعيد متاحة حاليًا — جرّب تغيّر الدكتور أو راجعنا لاحقًا.'}
+                </div>
+              ) : (
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {availableDates.map((date) => {
                   const dayName = new Date(date + 'T00:00:00').toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -573,6 +580,7 @@ export function BookingFlow() {
                   );
                 })}
               </div>
+              )}
               {errors.date && <p className="text-sm text-nova-error">{errors.date}</p>}
             </div>
           )}

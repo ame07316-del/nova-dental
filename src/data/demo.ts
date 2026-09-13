@@ -3,6 +3,36 @@
 // All data can be replaced by Supabase without changing the UI
 
 // ============================================
+// DYNAMIC DEMO DATES — التواريخ بتتولد نسبةً لليوم
+// ============================================
+// البيانات الأصلية كانت مكتوبة بتواريخ ثابتة (حوالين 2026-09-10) ومع مرور
+// الوقت بقت في الماضي، فقائمة التواريخ في صفحة الحجز (بتفلتر date >= اليوم)
+// كانت بتطلع فاضية. دلوقتي كل تاريخ بيتزاح بنفس إزاحته من اليوم المرجعي:
+// اللي كان "بكرة" وقت الكتابة بيفضل "بكرة" من اليوم — الديمو مش بيتقادم.
+const DEMO_DATE_ANCHOR = '2026-09-10';
+const MS_PER_DAY = 86_400_000;
+
+function literalOffsetDays(literalISO: string): number {
+  return Math.round((Date.parse(literalISO) - Date.parse(DEMO_DATE_ANCHOR)) / MS_PER_DAY);
+}
+
+function toLocalISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** يحوّل تاريخ الديمو الأصلي لتاريخ بنفس الإزاحة من النهاردة (مثال: 2026-09-11 = +1 يوم) */
+function demoDate(literalISO: string): string {
+  const d = new Date();
+  d.setDate(d.getDate() + literalOffsetDays(literalISO));
+  return toLocalISO(d);
+}
+
+/** اسم اليوم بالإنجليزية للتاريخ المُزاح — للعمود dayName في الديمو */
+function demoDayName(literalISO: string): string {
+  return new Date(demoDate(literalISO) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+// ============================================
 // DENTISTS
 // ============================================
 
@@ -199,8 +229,8 @@ export const schedules = [
   {
     id: 'schedule-001',
     dentistId: 'dentist-001',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '09:00',
     endTime: '17:00',
     isAvailable: true,
@@ -211,8 +241,8 @@ export const schedules = [
   {
     id: 'schedule-002',
     dentistId: 'dentist-001',
-    date: '2026-09-12',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-12'),
+    dayName: demoDayName('2026-09-12'),
     startTime: '09:00',
     endTime: '14:00',
     isAvailable: true,
@@ -224,8 +254,8 @@ export const schedules = [
   {
     id: 'schedule-003',
     dentistId: 'dentist-002',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '09:00',
     endTime: '18:00',
     isAvailable: true,
@@ -236,8 +266,8 @@ export const schedules = [
   {
     id: 'schedule-004',
     dentistId: 'dentist-002',
-    date: '2026-09-12',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-12'),
+    dayName: demoDayName('2026-09-12'),
     startTime: '10:00',
     endTime: '16:00',
     isAvailable: false,
@@ -249,8 +279,8 @@ export const schedules = [
   {
     id: 'schedule-005',
     dentistId: 'dentist-003',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '09:00',
     endTime: '19:00',
     isAvailable: true,
@@ -261,8 +291,8 @@ export const schedules = [
   {
     id: 'schedule-006',
     dentistId: 'dentist-003',
-    date: '2026-09-12',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-12'),
+    dayName: demoDayName('2026-09-12'),
     startTime: '09:00',
     endTime: '17:00',
     isAvailable: true,
@@ -483,8 +513,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-007',
     serviceName: 'Braces/Invisalign',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '09:00',
     endTime: '10:30',
     status: 'confirmed',
@@ -501,8 +531,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-003',
     serviceName: 'Teeth Whitening',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '10:00',
     endTime: '11:00',
     status: 'confirmed',
@@ -519,8 +549,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-004',
     serviceName: 'Dental Implant',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '11:30',
     endTime: '13:30',
     status: 'pending',
@@ -537,8 +567,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-001',
     serviceName: 'General Check-up',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '14:00',
     endTime: '14:30',
     status: 'confirmed',
@@ -555,8 +585,8 @@ export const appointments = [
     dentistName: 'Dr. Ahmed Hassan',
     serviceId: 'service-008',
     serviceName: 'Wisdom Tooth Extraction',
-    date: '2026-09-11',
-    dayName: 'Friday',
+    date: demoDate('2026-09-11'),
+    dayName: demoDayName('2026-09-11'),
     startTime: '15:00',
     endTime: '16:00',
     status: 'confirmed',
@@ -573,8 +603,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-007',
     serviceName: 'Braces/Invisalign',
-    date: '2026-09-12',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-12'),
+    dayName: demoDayName('2026-09-12'),
     startTime: '09:30',
     endTime: '10:30',
     status: 'confirmed',
@@ -591,8 +621,8 @@ export const appointments = [
     dentistName: 'Dr. Ahmed Hassan',
     serviceId: 'service-005',
     serviceName: 'Root Canal',
-    date: '2026-09-12',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-12'),
+    dayName: demoDayName('2026-09-12'),
     startTime: '11:00',
     endTime: '12:30',
     status: 'pending',
@@ -609,8 +639,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-003',
     serviceName: 'Teeth Whitening',
-    date: '2026-09-12',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-12'),
+    dayName: demoDayName('2026-09-12'),
     startTime: '14:00',
     endTime: '15:00',
     status: 'confirmed',
@@ -629,8 +659,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-001',
     serviceName: 'General Check-up',
-    date: '2026-09-05',
-    dayName: 'Saturday',
+    date: demoDate('2026-09-05'),
+    dayName: demoDayName('2026-09-05'),
     startTime: '10:00',
     endTime: '10:30',
     status: 'completed',
@@ -647,8 +677,8 @@ export const appointments = [
     dentistName: 'Dr. Ahmed Hassan',
     serviceId: 'service-008',
     serviceName: 'Wisdom Tooth Extraction',
-    date: '2026-09-04',
-    dayName: 'Friday',
+    date: demoDate('2026-09-04'),
+    dayName: demoDayName('2026-09-04'),
     startTime: '09:00',
     endTime: '10:00',
     status: 'completed',
@@ -665,8 +695,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-003',
     serviceName: 'Teeth Whitening',
-    date: '2026-09-03',
-    dayName: 'Thursday',
+    date: demoDate('2026-09-03'),
+    dayName: demoDayName('2026-09-03'),
     startTime: '11:00',
     endTime: '12:00',
     status: 'completed',
@@ -683,8 +713,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-001',
     serviceName: 'General Check-up',
-    date: '2026-09-02',
-    dayName: 'Wednesday',
+    date: demoDate('2026-09-02'),
+    dayName: demoDayName('2026-09-02'),
     startTime: '09:00',
     endTime: '09:30',
     status: 'completed',
@@ -701,8 +731,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-004',
     serviceName: 'Dental Implant',
-    date: '2026-08-28',
-    dayName: 'Friday',
+    date: demoDate('2026-08-28'),
+    dayName: demoDayName('2026-08-28'),
     startTime: '10:00',
     endTime: '12:00',
     status: 'completed',
@@ -721,8 +751,8 @@ export const appointments = [
     dentistName: 'Dr. Ahmed Hassan',
     serviceId: 'service-005',
     serviceName: 'Root Canal',
-    date: '2026-09-09',
-    dayName: 'Wednesday',
+    date: demoDate('2026-09-09'),
+    dayName: demoDayName('2026-09-09'),
     startTime: '14:00',
     endTime: '15:30',
     status: 'cancelled',
@@ -739,8 +769,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-006',
     serviceName: 'Dental Filling',
-    date: '2026-09-08',
-    dayName: 'Tuesday',
+    date: demoDate('2026-09-08'),
+    dayName: demoDayName('2026-09-08'),
     startTime: '15:00',
     endTime: '15:45',
     status: 'cancelled',
@@ -757,8 +787,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-007',
     serviceName: 'Braces/Invisalign',
-    date: '2026-09-06',
-    dayName: 'Sunday',
+    date: demoDate('2026-09-06'),
+    dayName: demoDayName('2026-09-06'),
     startTime: '11:00',
     endTime: '12:00',
     status: 'cancelled',
@@ -777,8 +807,8 @@ export const appointments = [
     dentistName: 'Dr. Mohamed Ali',
     serviceId: 'service-003',
     serviceName: 'Teeth Whitening',
-    date: '2026-09-06',
-    dayName: 'Sunday',
+    date: demoDate('2026-09-06'),
+    dayName: demoDayName('2026-09-06'),
     startTime: '11:00',
     endTime: '12:00',
     status: 'rescheduled',
@@ -795,8 +825,8 @@ export const appointments = [
     dentistName: 'Dr. Sarah Smith',
     serviceId: 'service-001',
     serviceName: 'General Check-up',
-    date: '2026-09-07',
-    dayName: 'Monday',
+    date: demoDate('2026-09-07'),
+    dayName: demoDayName('2026-09-07'),
     startTime: '14:00',
     endTime: '14:30',
     status: 'rescheduled',
@@ -813,8 +843,8 @@ export const appointments = [
     dentistName: 'Dr. Ahmed Hassan',
     serviceId: 'service-008',
     serviceName: 'Wisdom Tooth Extraction',
-    date: '2026-09-08',
-    dayName: 'Tuesday',
+    date: demoDate('2026-09-08'),
+    dayName: demoDayName('2026-09-08'),
     startTime: '10:00',
     endTime: '11:00',
     status: 'rescheduled',
@@ -836,7 +866,7 @@ export const sessions = [
     patientId: 'patient-001',
     dentistId: 'dentist-001',
     serviceId: 'service-007',
-    date: '2026-09-11',
+    date: demoDate('2026-09-11'),
     startTime: '09:00',
     endTime: '10:30',
     status: 'active',
@@ -853,7 +883,7 @@ export const sessions = [
     patientId: 'patient-002',
     dentistId: 'dentist-001',
     serviceId: 'service-001',
-    date: '2026-09-11',
+    date: demoDate('2026-09-11'),
     startTime: '14:00',
     endTime: '14:30',
     status: 'active',
@@ -870,7 +900,7 @@ export const sessions = [
     patientId: 'patient-003',
     dentistId: 'dentist-002',
     serviceId: 'service-008',
-    date: '2026-09-11',
+    date: demoDate('2026-09-11'),
     startTime: '15:00',
     endTime: '16:00',
     status: 'active',
@@ -887,7 +917,7 @@ export const sessions = [
     patientId: 'patient-001',
     dentistId: 'dentist-001',
     serviceId: 'service-001',
-    date: '2026-09-05',
+    date: demoDate('2026-09-05'),
     startTime: '10:00',
     endTime: '10:30',
     status: 'completed',
@@ -904,7 +934,7 @@ export const sessions = [
     patientId: 'patient-003',
     dentistId: 'dentist-002',
     serviceId: 'service-008',
-    date: '2026-09-04',
+    date: demoDate('2026-09-04'),
     startTime: '09:00',
     endTime: '10:00',
     status: 'completed',
@@ -921,7 +951,7 @@ export const sessions = [
     patientId: 'patient-004',
     dentistId: 'dentist-003',
     serviceId: 'service-004',
-    date: '2026-08-28',
+    date: demoDate('2026-08-28'),
     startTime: '10:00',
     endTime: '12:00',
     status: 'completed',
