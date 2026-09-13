@@ -1,6 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+/**
+ * Server Supabase client — للـ Server Components و Server Actions فقط
+ *
+ * - يقرأ/يكتب الكوكيز عبر next/headers
+ * - الـ middleware هو من يجدّد التوكن فعليًا؛ هنا نكتب الكوكيز بـ try/catch
+ *   لأن Server Component لا يسمح بـ set داخل الـ render
+ *
+ * استخدم getSupabaseBrowser() في أي 'use client' بدلاً من هذا
+ */
 export function createClient() {
   const cookieStore = cookies();
 
@@ -16,7 +25,7 @@ export function createClient() {
           try {
             cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
           } catch {
-            // Called from a Server Component; safe to ignore when middleware handles refresh.
+            // داخل Server Component — middleware سيتكفل بالكتابة
           }
         },
       },

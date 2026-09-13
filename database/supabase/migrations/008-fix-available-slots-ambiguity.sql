@@ -56,8 +56,9 @@ BEGIN
       e := s + make_interval(mins => v_duration);
       v_skip := false;
 
+      -- TIME overlap (tsrange only works on timestamp, not time)
       IF NOT (v_sched.break_start IS NOT NULL AND v_sched.break_end IS NOT NULL
-              AND tsrange(s, e, '[)') && tsrange(v_sched.break_start, v_sched.break_end, '[)')) THEN
+              AND s < v_sched.break_end AND e > v_sched.break_start) THEN
         -- slot would fall entirely in the past (only for today)
         IF (p_date = CURRENT_DATE AND ((p_date + s) AT TIME ZONE 'UTC') <= now()) THEN
           v_skip := true;

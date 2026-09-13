@@ -1,9 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr';
 
-// Shared singleton browser client (cookie-based session).
-// Every client component MUST use this — never create a second browser
-// client (auth-helpers / raw supabase-js use different storage and the
-// session becomes invisible to the rest of the app, breaking login).
+/**
+ * Browser Supabase client — Singleton واحد لكل التطبيق
+ *
+ * ⚠️ قاعدة ذهبية: كل 'use client' يستورد هذا فقط
+ * لا تنشئ createClient() ثانية (auth-helpers / supabase-js الخام
+ * يستخدمون storage مختلف والجلسة تختفي)
+ */
 let client: ReturnType<typeof createBrowserClient> | null = null;
 
 export function getSupabaseBrowser() {
