@@ -50,34 +50,34 @@ export function HeroSection() {
                   <line x1="15" y1="9" x2="15.01" y2="9" />
                 </svg>
               </div>
-              <div className="absolute -left-4 top-8 rounded-2xl bg-nova-surface p-4 shadow-soft" dir="ltr">
+              <div className="absolute -left-4 top-8 rounded-2xl bg-nova-surface p-4 shadow-soft" dir="rtl">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </div>
-                  <span className="text-xs font-medium text-nova-text">500+ Treatments</span>
+                  <span className="text-xs font-medium text-nova-text">500+ علاج</span>
                 </div>
               </div>
-              <div className="absolute -right-4 top-20 rounded-2xl bg-nova-surface p-4 shadow-soft" dir="ltr">
+              <div className="absolute -right-4 top-20 rounded-2xl bg-nova-surface p-4 shadow-soft" dir="rtl">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-nova-primary-light">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2">
                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
                     </svg>
                   </div>
-                  <span className="text-xs font-medium text-nova-text">Expert Dentists</span>
+                  <span className="text-xs font-medium text-nova-text">أطباء خبراء</span>
                 </div>
               </div>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-2xl bg-nova-surface p-4 shadow-soft" dir="ltr">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-2xl bg-nova-surface p-4 shadow-soft" dir="rtl">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                     </svg>
                   </div>
-                  <span className="text-xs font-medium text-nova-text">15 Min Wait</span>
+                  <span className="text-xs font-medium text-nova-text">15 دقيقة انتظار</span>
                 </div>
               </div>
             </div>

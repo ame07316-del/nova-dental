@@ -144,43 +144,16 @@ export function Header() {
   );
 }
 
-// Compact theme toggle
+// Compact theme toggle — مخفي: الموقع فاتح فقط
 function ThemeToggleCompact() {
-  const { resolvedTheme, toggleTheme } = useTheme();
-
-  return (
-    <button
-      onClick={toggleTheme}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-nova-border bg-nova-surface text-nova-text transition-colors hover:bg-nova-muted"
-      aria-label="Toggle theme"
-    >
-      {resolvedTheme === 'dark' ? (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      )}
-    </button>
-  );
+  return null;
 }
 
-// Compact language switcher
+// Compact language switcher — مخفي: الموقع عربي 100%
 function LanguageSwitcherCompact() {
-  const { language, setLanguage } = useLanguage();
-
   return (
-    <select
-      value={language}
-      onChange={(e) => setLanguage(e.target.value as 'en' | 'ar')}
-      className="h-9 w-[100px] rounded-lg border border-nova-border bg-nova-surface px-2 text-xs font-medium text-nova-text transition-colors focus:outline-none focus:ring-2 focus:ring-nova-primary/20"
-      aria-label="Select language"
-    >
-      <option value="en">EN</option>
-      <option value="ar">AR</option>
-    </select>
+    <div className="flex h-9 items-center rounded-lg bg-nova-muted px-3 text-xs font-medium text-nova-text">
+      <span className="font-arabic">العربية</span>
+    </div>
   );
 }
