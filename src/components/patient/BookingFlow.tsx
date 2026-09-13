@@ -14,6 +14,7 @@ import { formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { notify } from '@/components/ui/Notification';
 import { getPublicCatalog, getDoctorAvailability, getAvailableSlots, bookAppointment } from '@/app/actions';
+import { dentists as demoDentists, services as demoServices } from '@/data/demo';
 import type { Service, Dentist, Schedule } from '@/lib/supabase/types';
 
 type AvailabilitySlot = { start_time: string; end_time: string };
@@ -95,10 +96,18 @@ export function BookingFlow() {
     void loadCatalog();
   }, [loadCatalog]);
 
-  // Pre-fill from URL once catalog is loaded
+  // Pre-fill from URL once catalog is loaded.
+  // Accepts live UUIDs AND legacy demo ids (dentist-001…) by matching names.
   useEffect(() => {
     if (prefilledDentist && dentists.length > 0) {
-      const dentist = dentists.find((d) => d.id === prefilledDentist);
+      const dentist =
+        dentists.find((d) => d.id === prefilledDentist) ??
+        (() => {
+          const demo = demoDentists.find((d) => d.id === prefilledDentist);
+          if (!demo) return undefined;
+          const full = `${demo.firstName} ${demo.lastName}`.toLowerCase();
+          return dentists.find((d) => `${d.firstName} ${d.lastName}`.toLowerCase() === full);
+        })();
       if (dentist) {
         setBooking((prev) => ({
           ...prev,
@@ -113,7 +122,14 @@ export function BookingFlow() {
 
   useEffect(() => {
     if (prefilledService && services.length > 0) {
-      const service = services.find((s) => s.id === prefilledService);
+      // Accepts live UUIDs AND legacy demo ids (service-001…) by matching names.
+      const service =
+        services.find((s) => s.id === prefilledService) ??
+        (() => {
+          const demo = demoServices.find((s) => s.id === prefilledService);
+          if (!demo) return undefined;
+          return services.find((s) => s.name.toLowerCase() === demo.name.toLowerCase());
+        })();
       if (service) {
         setBooking((prev) => ({ ...prev, serviceId: service.id, serviceName: service.name }));
       }
