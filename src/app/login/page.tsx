@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { getSupabaseBrowser, isSupabaseConfigured } from '@/lib/supabase/browser';
 import { AuthLayout } from '@/components/layout/AppLayout';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -14,7 +14,6 @@ type Mode = 'signin' | 'signup';
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowser();
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -27,6 +26,11 @@ export default function LoginPage() {
   const handleSignIn = async () => {
     if (!email || !password) {
       notify('error', 'حقول ناقصة', 'أدخل بريدك وكلمة المرور.');
+      return;
+    }
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      notify('error', 'وضع العرض التجريبي', 'Supabase غير متصل — أضف متغيرات البيئة في .env.local لتشغيل تسجيل الدخول.');
       return;
     }
     setLoading(true);
@@ -50,6 +54,11 @@ export default function LoginPage() {
     }
     if (password.length < 6) {
       notify('error', 'كلمة مرور ضعيفة', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+      return;
+    }
+    const supabase = getSupabaseBrowser();
+    if (!supabase) {
+      notify('error', 'وضع العرض التجريبي', 'Supabase غير متصل — أضف متغيرات البيئة في .env.local لتشغيل إنشاء الحسابات.');
       return;
     }
     setLoading(true);
@@ -100,6 +109,15 @@ export default function LoginPage() {
           </p>
         </CardHeader>
         <CardBody className="space-y-4">
+          {!isSupabaseConfigured && (
+            <div role="status" className="rounded-lg border border-nova-border bg-nova-muted p-3 text-xs leading-relaxed text-nova-text-secondary">
+              <span className="me-1">🛈</span>
+              وضع العرض التجريبي — Supabase غير متصل. الصفحات العامة والبيانات التجريبية تعمل،
+              وتسجيل الدخول يتطلب إضافة <code className="rounded bg-nova-surface px-1 py-0.5">NEXT_PUBLIC_SUPABASE_URL</code> و{' '}
+              <code className="rounded bg-nova-surface px-1 py-0.5">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> في ملف{' '}
+              <code className="rounded bg-nova-surface px-1 py-0.5">.env.local</code>.
+            </div>
+          )}
           <div className="flex gap-1 rounded-lg bg-nova-muted p-1" role="tablist">
             {(['signin', 'signup'] as Mode[]).map((m) => (
               <button

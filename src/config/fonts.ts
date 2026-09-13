@@ -69,7 +69,10 @@ export const FONTS = {
   },
 } as const;
 
-// Google Fonts import URL for Next.js
+// Font loading configuration for Next.js
+// NOTE: Inter + Noto Naskh Arabic are now self-hosted via next/font/local
+// (see src/app/layout.tsx + src/fonts/). The URL below is kept only as a
+// reference for any additional optional fonts (Figtree, JetBrains Mono, …).
 export const GOOGLE_FONTS_URL = [
   "https://fonts.googleapis.com/css2?",
   "family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap",
@@ -81,7 +84,6 @@ export const GOOGLE_FONTS_URL = [
   "&family=Lexend:wght@300;400;500;600;700&display=swap",
 ].join('');
 
-// Font loading configuration for Next.js
 export const fontConfig = {
   subsets: ['arabic', 'latin'],
   display: 'swap' as const,

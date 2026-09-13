@@ -68,7 +68,10 @@ export function Sidebar() {
   const { language } = useLanguage();
 
   const handleLogout = async () => {
-    await getSupabaseBrowser().auth.signOut();
+    const supabase = getSupabaseBrowser();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     router.replace('/login');
   };
 

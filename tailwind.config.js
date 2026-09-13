@@ -48,14 +48,16 @@ const config = {
         },
       },
       fontFamily: {
-        arabic: ['Noto Naskh Arabic', 'Noto Sans Arabic', 'system-ui'],
-        arabicHeading: ['Noto Naskh Arabic', 'serif'],
-        arabicBody: ['Noto Sans Arabic', 'sans-serif'],
-        display: ['Figtree', 'system-ui'],
-        body: ['Inter', 'system-ui'],
+        // var(--font-arabic) / var(--font-inter) يأتيان من next/font (layout.tsx)
+        // وتحمل الخطوط المحمّلة فعليًا؛ الباقي fallback لو المتغيرات غير موجودة.
+        arabic: ['var(--font-arabic)', 'Noto Naskh Arabic', 'Noto Sans Arabic', 'system-ui'],
+        arabicHeading: ['var(--font-arabic)', 'Noto Naskh Arabic', 'serif'],
+        arabicBody: ['var(--font-arabic)', 'Noto Naskh Arabic', 'Noto Sans Arabic', 'sans-serif'],
+        display: ['var(--font-inter)', 'Figtree', 'system-ui'],
+        body: ['var(--font-inter)', 'Inter', 'system-ui'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
-        label: ['Plus Jakarta Sans', 'system-ui'],
-        trust: ['Lexend', 'Source Sans 3', 'sans-serif'],
+        label: ['var(--font-inter)', 'Plus Jakarta Sans', 'system-ui'],
+        trust: ['var(--font-inter)', 'Lexend', 'Source Sans 3', 'sans-serif'],
       },
       fontSize: {
         'ar-display': ['48px', { lineHeight: '1.1', letterSpacing: '-0.02em' }],

@@ -14,7 +14,7 @@ import { formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { notify } from '@/components/ui/Notification';
 import { getPublicCatalog, getDoctorAvailability, getAvailableSlots, bookAppointment } from '@/app/actions';
-import { dentists as demoDentists, services as demoServices } from '@/data/demo';
+import { dentists as demoDentists, services as demoServices, schedules as demoSchedules } from '@/data/demo';
 import type { Service, Dentist, Schedule } from '@/lib/supabase/types';
 
 // ===== ترجمة الأسماء للعربية — الموقع عربي 100% =====
@@ -119,7 +119,12 @@ export function BookingFlow() {
       );
       setSchedules(scheduleResults.flatMap((r) => (r.ok ? r.data : [])));
     } else {
-      notify('error', 'Loading failed', res.error);
+      // Supabase غير متصل أو الكاتالوج فشل → وضع العرض التجريبي:
+      // نكمّل التصفح ببيانات الديمو بدل ما نعلّق المستخدم على رسالة خطأ.
+      setServices(demoServices as unknown as Service[]);
+      setDentists(demoDentists as unknown as Dentist[]);
+      setSchedules(demoSchedules as unknown as Schedule[]);
+      notify('info', 'وضع العرض التجريبي', 'يتم عرض بيانات تجريبية — الحجز الفعلي يتطلب ربط Supabase.');
     }
     setCatalogLoading(false);
   }, []);

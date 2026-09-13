@@ -1,5 +1,5 @@
 import { Metadata, Viewport } from 'next';
-import { Inter, Noto_Naskh_Arabic } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { DemoDataProvider } from '@/components/layout/DemoDataProvider';
 import { AppProvider } from '@/components/layout/AppProvider';
@@ -8,14 +8,22 @@ import { LanguageProvider } from '@/components/layout/LanguageProvider';
 import { AuthProvider } from '@/components/layout/AuthProvider';
 import { NotificationProvider } from '@/components/notifications';
 
-const inter = Inter({
-  subsets: ['latin'],
+// نفس خطوط Google (Inter + Noto Naskh Arabic — رخصة OFL، ملفاتهم في src/fonts/)
+// لكن self-hosted:
+// 1) البناء لا يعتمد على الاتصال بـ fonts.googleapis.com (كان يفشل أوفلاين)
+// 2) الخطوط تُطبَّق فعليًا عبر متغيرات --font-inter / --font-arabic الموصولة في tailwind.config.js
+const inter = localFont({
+  src: '../fonts/inter-latin-wght-normal.woff2',
+  weight: '100 900',
+  style: 'normal',
   display: 'swap',
   variable: '--font-inter',
 });
 
-const notoNaskhArabic = Noto_Naskh_Arabic({
-  subsets: ['arabic'],
+const notoNaskhArabic = localFont({
+  src: '../fonts/noto-naskh-arabic-arabic-wght-normal.woff2',
+  weight: '400 700',
+  style: 'normal',
   display: 'swap',
   variable: '--font-arabic',
 });
