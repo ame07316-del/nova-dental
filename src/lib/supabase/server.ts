@@ -18,17 +18,21 @@ export function isSupabaseServerConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
+// وضع الديمو: بيانات بصيغة صحيحة عشان الـ client يت construct عادي بدون ما يرمي،
+// وأي استعلام فعلي هيفشل بهدوء (network error) وكل action يرجّعه كـ ActionResult.
+const DEMO_URL = 'http://127.0.0.1:54321';
+const DEMO_KEY = 'demo-anon-key';
+
 export function createClient(): SupabaseClient {
-  if (!isSupabaseServerConfigured()) {
-    throw new Error(
-      "Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
-    );
-  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = url && key ? url : DEMO_URL;
+  const supabaseKey = url && key ? key : DEMO_KEY;
   const cookieStore = cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

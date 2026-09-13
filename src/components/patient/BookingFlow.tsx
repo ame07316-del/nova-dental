@@ -193,9 +193,39 @@ export function BookingFlow() {
       );
       if (cancelled) return;
       const map: Record<string, AvailabilitySlot[]> = {};
+      let rpcFailed = false;
       results.forEach((res, i) => {
         if (res.ok && res.data.length > 0) map[targets[i]] = res.data;
+        if (!res.ok) rpcFailed = true;
       });
+      // وضع الديمو: RPC غير متاح — نولّد المواعيد محليًا من جداول العمل الديمو
+      // بنفس قواعد الحجز الفعلي (خطوات 30 دقيقة، مدة الخدمة، باستثناء البريك).
+      if (rpcFailed && Object.keys(map).length === 0) {
+        const service = services.find((s) => s.id === booking.serviceId);
+        const duration = Math.max(15, Number(service?.durationMinutes ?? 30));
+        for (const dentistId of targets) {
+          const daySchedules = schedules.filter(
+            (s) => s.dentistId === dentistId && s.date === booking.date && s.isAvailable
+          );
+          const slots: AvailabilitySlot[] = [];
+          for (const sch of daySchedules) {
+            const [sh, sm] = sch.startTime.split(':').map(Number);
+            const [eh, em] = sch.endTime.split(':').map(Number);
+            const bs = sch.breakStart ? sch.breakStart.split(':').map(Number) : null;
+            const be = sch.breakEnd ? sch.breakEnd.split(':').map(Number) : null;
+            const bsMin = bs ? bs[0] * 60 + bs[1] : null;
+            const beMin = be ? be[0] * 60 + be[1] : null;
+            for (let t = sh * 60 + sm; t + duration <= eh * 60 + em; t += 30) {
+              // تخطّي أي slot يتراكب مع فترة الراحة
+              if (bsMin !== null && beMin !== null && t < beMin && t + duration > bsMin) continue;
+              const fmt = (mins: number) =>
+                `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+              slots.push({ start_time: fmt(t), end_time: fmt(t + duration) });
+            }
+          }
+          if (slots.length > 0) map[dentistId] = slots;
+        }
+      }
       setSlotsByDentist(map);
       setSlotsLoading(false);
     };
@@ -204,7 +234,7 @@ export function BookingFlow() {
     return () => {
       cancelled = true;
     };
-  }, [booking.serviceId, booking.dentistId, booking.preferredDentist, booking.date, dentists]);
+  }, [booking.serviceId, booking.dentistId, booking.preferredDentist, booking.date, dentists, services, schedules]);
 
   // Dates that are actually in the selected dentist's schedule (or union across dentists)
   const availableDates = useMemo(() => {

@@ -138,6 +138,7 @@ export async function getPublicCatalog(): Promise<ActionResult<{ services: Servi
 
 /** Real availability: schedules for a dentist over the next N days (public). */
 export async function getDoctorAvailability(dentistId: string): Promise<ActionResult<Schedule[]>> {
+  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
   const supabase = createClient();
   const { data, error } = await supabase
     .from('schedules')
@@ -156,6 +157,7 @@ export async function getAvailableSlots(
   serviceId: string,
   date: string
 ): Promise<ActionResult<AvailableSlot[]>> {
+  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
   const supabase = createClient();
   const { data, error } = await supabase.rpc('get_available_slots', {
     p_dentist_id: dentistId,
@@ -178,6 +180,7 @@ export async function bookAppointment(input: BookAppointmentInput): Promise<Acti
     return { ok: false, error: 'Name and phone are required' };
   }
 
+  if (!isSupabaseServerConfigured()) return { ok: false, error: SUPABASE_NOT_CONFIGURED };
   const supabase = createClient();
   const { data, error } = await supabase.rpc('book_appointment', {
     p_payload: {
