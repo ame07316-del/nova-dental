@@ -17,6 +17,38 @@ import { getPublicCatalog, getDoctorAvailability, getAvailableSlots, bookAppoint
 import { dentists as demoDentists, services as demoServices } from '@/data/demo';
 import type { Service, Dentist, Schedule } from '@/lib/supabase/types';
 
+// ===== ترجمة الأسماء للعربية — الموقع عربي 100% =====
+const serviceArMap: Record<string, { name: string; category: string }> = {
+  'General Check-up': { name: 'فحص عام شامل', category: 'وقائي' },
+  'Deep Cleaning': { name: 'تنظيف عميق', category: 'وقائي' },
+  'Teeth Whitening': { name: 'تبييض الأسنان', category: 'تجميلي' },
+  'Dental Implant': { name: 'زراعة الأسنان', category: 'ترميمي' },
+  'Root Canal': { name: 'علاج الجذور', category: 'ترميمي' },
+  'Dental Filling': { name: 'حشو الأسنان', category: 'ترميمي' },
+  'Braces/Invisalign': { name: 'تقويم الأسنان', category: 'تقويم' },
+  'Wisdom Tooth Extraction': { name: 'خلع ضرس العقل', category: 'جراحة الفم' },
+  'Emergency Consultation': { name: 'استشارة طارئة', category: 'طوارئ' },
+};
+const specialtyArMap: Record<string, string> = {
+  'Orthodontics': 'تقويم الأسنان',
+  'Oral Surgery': 'جراحة الفم',
+  'Cosmetic Dentistry': 'تجميل الأسنان',
+  'General Dentistry': 'طب أسنان عام',
+  'Preventive': 'وقائي',
+  'Restorative': 'ترميمي',
+  'Cosmetic': 'تجميلي',
+  'Emergency': 'طوارئ',
+};
+function arServiceName(s: Service): string {
+  return (s as any).nameAr ?? serviceArMap[s.name]?.name ?? s.name;
+}
+function arServiceCat(s: Service): string {
+  return (s as any).categoryAr ?? serviceArMap[s.name]?.category ?? specialtyArMap[s.category] ?? s.category;
+}
+function arSpecialty(s: string): string {
+  return specialtyArMap[s] ?? s;
+}
+
 type AvailabilitySlot = { start_time: string; end_time: string };
 
 // Booking flow data types
@@ -304,7 +336,7 @@ export function BookingFlow() {
       return;
     }
 
-    // Resolve the concrete dentist when "Any Available Dentist" was chosen.
+    // Resolve the concrete dentist when "أي طبيب متاح" was chosen.
     const resolvedDentistId =
       booking.dentistId || dentistBySlotTime[booking.time] || dentists[0]?.id;
     if (!resolvedDentistId) {
@@ -352,13 +384,13 @@ export function BookingFlow() {
 
   const stepTitles = [
     '',
-    'Select Service',
-    'Select Dentist',
-    'Select Date',
-    'Select Time',
-    'Patient Info',
-    'Review Details',
-    'Confirm',
+    'اختر الخدمة',
+    'اختر الطبيب',
+    'اختر التاريخ',
+    'اختر الوقت',
+    'بيانات المريض',
+    'مراجعة التفاصيل',
+    'التأكيد',
   ];
 
   const progressPercent = ((booking.step - 1) / 6) * 100;
@@ -367,10 +399,10 @@ export function BookingFlow() {
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-nova-text">
-          {language === 'ar' ? 'احجز موعدك' : 'Book an Appointment'}
+          {language === 'ar' ? 'احجز موعدك' : 'احجز موعدك'}
         </h1>
         <p className="mt-2 text-nova-text-secondary">
-          {language === 'ar' ? 'اتبع الخطوات لاحجز موعدك بنجاح' : 'Follow the steps to book your appointment'}
+          {language === 'ar' ? 'اتبع الخطوات لاحجز موعدك بنجاح' : 'اتبع الخطوات لإتمام حجزك بنجاح'}
         </p>
       </div>
 
@@ -427,7 +459,7 @@ export function BookingFlow() {
               )}
               {catalogLoading ? (
                 <div className="rounded-lg bg-nova-muted/40 p-8 text-center text-sm text-nova-text-muted">
-                  {language === 'ar' ? 'جارٍ تحميل الخدمات...' : 'Loading services...'}
+                  {language === 'ar' ? 'جارٍ تحميل الخدمات...' : 'جارٍ تحميل الخدمات...'}
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -443,8 +475,8 @@ export function BookingFlow() {
                     )}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-nova-text">{service.name}</p>
-                      <p className="text-xs text-nova-text-muted">{service.category} • {service.durationMinutes} min</p>
+                      <p className="text-sm font-semibold text-nova-text">{arServiceName(service)}</p>
+                      <p className="text-xs text-nova-text-muted">{arServiceCat(service)} • {service.durationMinutes} دقيقة</p>
                     </div>
                     <span className="text-sm font-bold text-nova-primary">${service.price ?? '—'}</span>
                   </button>
@@ -460,7 +492,7 @@ export function BookingFlow() {
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-nova-text">{stepTitles[2]}</h2>
               <p className="text-sm text-nova-text-muted">
-                {language === 'ar' ? 'اختر طبيبك المفضل أو اختر "أي طبيب متاح"' : 'Choose your preferred dentist or "Any available dentist"'}
+                {language === 'ar' ? 'اختر طبيبك المفضل أو اختر "أي طبيب متاح"' : 'اختر طبيبك المفضل أو "أي طبيب متاح"'}
               </p>
               <div className="space-y-3">
                 {/* Any dentist option */}
@@ -501,7 +533,7 @@ export function BookingFlow() {
                       <Avatar name={`${dentist.firstName} ${dentist.lastName}`} size="md" />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-nova-text">Dr. {dentist.firstName} {dentist.lastName}</p>
-                        <p className="text-xs text-nova-text-muted">{dentist.specialty}</p>
+                        <p className="text-xs text-nova-text-muted">{arSpecialty(dentist.specialty)}</p>
                       </div>
                       {isSelected && <div className="flex h-6 w-6 items-center justify-center rounded-full bg-nova-primary text-white">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
@@ -545,15 +577,15 @@ export function BookingFlow() {
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-nova-text">{stepTitles[4]}</h2>
               <p className="text-sm text-nova-text-muted">
-                {language === 'ar' ? `التاريخ المختار: ${booking.date}` : `Selected date: ${booking.date}`}
+                {language === 'ar' ? `التاريخ المختار: ${booking.date}` : `التاريخ المختار: ${booking.date}`}
               </p>
               {slotsLoading ? (
                 <div className="rounded-lg bg-nova-muted/40 p-4 text-center text-sm text-nova-text-muted">
-                  {language === 'ar' ? 'جارٍ تحميل المواعيد المتاحة...' : 'Loading available slots...'}
+                  {language === 'ar' ? 'جارٍ تحميل المواعيد المتاحة...' : 'جارٍ تحميل المواعيد المتاحة...'}
                 </div>
               ) : availableTimeSlots.length === 0 ? (
                 <div className="rounded-lg bg-amber-50 p-4 text-center text-sm text-amber-700">
-                  {language === 'ar' ? 'لا توجد مواعيد متاحة في هذا التاريخ. اختر تاريخاً آخر.' : 'No available time slots for this date. Please choose another date.'}
+                  {language === 'ar' ? 'لا توجد مواعيد متاحة في هذا التاريخ. اختر تاريخاً آخر.' : 'لا توجد مواعيد متاحة في هذا التاريخ. اختر تاريخاً آخر.'}
                 </div>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -693,8 +725,8 @@ export function BookingFlow() {
               <h2 className="text-xl font-bold text-nova-text">{stepTitles[6]}</h2>
               <div className="space-y-4 rounded-lg bg-nova-muted/30 p-4">
                 {[
-                  { label: language === 'ar' ? 'الخدمة' : 'Service', value: booking.serviceName },
-                  { label: language === 'ar' ? 'الطبيب' : 'Dentist', value: booking.preferredDentist && !booking.dentistName ? 'Any Available Dentist' : booking.dentistName },
+                  { label: language === 'ar' ? 'الخدمة' : 'Service', value: (serviceArMap[booking.serviceName]?.name ?? booking.serviceName) },
+                  { label: language === 'ar' ? 'الطبيب' : 'Dentist', value: booking.preferredDentist && !booking.dentistName ? 'أي طبيب متاح' : booking.dentistName },
                   { label: language === 'ar' ? 'التاريخ' : 'Date', value: booking.date },
                   { label: language === 'ar' ? 'الوقت' : 'Time', value: booking.time },
                   { label: language === 'ar' ? 'الاسم' : 'Name', value: booking.patientName },
@@ -746,8 +778,8 @@ export function BookingFlow() {
               </p>
               <div className="rounded-lg bg-nova-muted/30 p-4 text-left">
                 {[
-                  { label: language === 'ar' ? 'الخدمة' : 'Service', value: booking.serviceName },
-                  { label: language === 'ar' ? 'الطبيب' : 'Dentist', value: booking.dentistName || 'Any Available Dentist' },
+                  { label: language === 'ar' ? 'الخدمة' : 'Service', value: (serviceArMap[booking.serviceName]?.name ?? booking.serviceName) },
+                  { label: language === 'ar' ? 'الطبيب' : 'Dentist', value: booking.dentistName || 'أي طبيب متاح' },
                   { label: language === 'ar' ? 'التاريخ' : 'Date', value: booking.date },
                   { label: language === 'ar' ? 'الوقت' : 'Time', value: booking.time },
                   { label: language === 'ar' ? 'الاسم' : 'Name', value: booking.patientName },

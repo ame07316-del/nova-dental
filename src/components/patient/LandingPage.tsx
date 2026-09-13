@@ -33,7 +33,7 @@ export function HeroSection() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button size="lg" onClick={() => router.push('/book')}>
-                {language === 'ar' ? 'احجز موعداً الآن' : 'Book an Appointment'}
+                {language === 'ar' ? 'احجز موعداً الآن' : 'احجز موعداً الآن'}
               </Button>
               <Button variant="outline" size="lg" onClick={() => router.push('/services')}>
                 {language === 'ar' ? 'استكشف الخدمات' : 'Explore Services'}
@@ -109,7 +109,7 @@ export function FeaturesSection() {
         </svg>
       ),
       title: language === 'ar' ? 'حجز مواعيد سهل' : 'Easy Booking',
-      description: language === 'ar' ? 'احجز موعدك أونلاين خلال دقائق' : 'Book your appointment online in minutes',
+      description: language === 'ar' ? 'احجز موعدك أونلاين خلال دقائق' : 'احجز موعدك أونلاين خلال دقائق',
     },
     {
       icon: (
@@ -176,7 +176,7 @@ export function CTASection() {
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" variant="gold" onClick={() => router.push('/book')}>
-            {language === 'ar' ? 'احجز الآن' : 'Book Now'}
+            {language === 'ar' ? 'احجز الآن' : 'احجز الآن'}
           </Button>
           <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => router.push('/doctors')}>
             {language === 'ar' ? 'تعرف على أطبائنا' : 'Meet Our Doctors'}

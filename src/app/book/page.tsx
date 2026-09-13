@@ -5,7 +5,7 @@ import { BookingFlow } from '@/components/patient/BookingFlow';
 
 export default function BookPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-nova-text-muted">Loading booking...</div>}>
+    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-nova-text-muted">جارٍ تحميل الحجز...</div>}>
       <BookingFlow />
     </Suspense>
   );

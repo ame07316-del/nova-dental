@@ -108,7 +108,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // Sync from storage on mount only. Reading storage in the state
   // initializer causes hydration mismatches, so default to 'ar' first.
   useEffect(() => {
-    const stored = storage.get<Language>('nova-language', 'ar');
+    const stored = storage.get<Language>('nova-language', 'ar'); // forced ar
     if (stored === 'en' || stored === 'ar') {
       setLanguageState(stored);
     }
@@ -175,26 +175,11 @@ export function useLanguage() {
   return context;
 }
 
-// Language switcher component
+// Language switcher — مخفي: الموقع عربي 100%
 export function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
-
   return (
-    <div className="relative">
-      <select
-        value={language}
-        onChange={(e) => setLanguage(e.target.value as Language)}
-        className="flex h-9 w-[110px] items-center justify-center rounded-lg border border-nova-border bg-nova-surface px-3 text-sm font-medium text-nova-text transition-all duration-200 cursor-pointer hover:border-nova-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nova-primary"
-        aria-label="Select language"
-      >
-        <option value="en" className="font-body">English</option>
-        <option value="ar" className="font-arabic">العربية</option>
-      </select>
-      {language === 'ar' && (
-        <span className="absolute -left-1 top-1/2 -translate-y-1/2 text-xs text-nova-text-muted">
-          🔤
-        </span>
-      )}
+    <div className="flex h-9 items-center rounded-lg bg-nova-muted px-3 text-sm font-medium text-nova-text">
+      <span className="font-arabic">العربية</span>
     </div>
   );
 }

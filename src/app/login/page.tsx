@@ -26,18 +26,18 @@ export default function LoginPage() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      notify('error', 'Missing fields', 'Enter your email and password.');
+      notify('error', 'حقول ناقصة', 'أدخل بريدك وكلمة المرور.');
       return;
     }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      notify('success', 'Welcome back', 'Signed in successfully.');
+      notify('success', 'مرحباً بعودتك', 'تم تسجيل الدخول بنجاح.');
       await router.refresh();
       router.replace('/dashboard');
     } catch (err) {
-      notify('error', 'Sign in failed', (err as Error).message || 'Check your credentials.');
+      notify('error', 'فشل تسجيل الدخول', (err as Error).message || 'تحقق من بياناتك.');
     } finally {
       setLoading(false);
     }
@@ -45,11 +45,11 @@ export default function LoginPage() {
 
   const handleSignUp = async () => {
     if (!email || !password || !firstName) {
-      notify('error', 'Missing fields', 'Name, email and password are required.');
+      notify('error', 'حقول ناقصة', 'الاسم والبريد وكلمة المرور مطلوبة.');
       return;
     }
     if (password.length < 6) {
-      notify('error', 'Weak password', 'Password must be at least 6 characters.');
+      notify('error', 'كلمة مرور ضعيفة', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
       return;
     }
     setLoading(true);
@@ -71,14 +71,14 @@ export default function LoginPage() {
       // No session = email confirmation required
       if (!data.session) {
         setCheckEmail(true);
-        notify('success', 'Check your email', 'Confirm your email to finish creating your account.');
+        notify('success', 'تحقق من بريدك', 'أكد بريدك لإتمام إنشاء الحساب.');
         return;
       }
-      notify('success', 'Account created', 'You can now sign in.');
+      notify('success', 'تم إنشاء الحساب', 'يمكنك الآن تسجيل الدخول.');
       setMode('signin');
       setPassword('');
     } catch (err) {
-      notify('error', 'Sign up failed', (err as Error).message || 'Unable to create account.');
+      notify('error', 'فشل إنشاء الحساب', (err as Error).message || 'تعذر إنشاء الحساب.');
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-xl">NOVA Dental Studio</CardTitle>
           <p className="mt-1 text-sm text-nova-text-secondary">
-            {mode === 'signin' ? 'Staff sign in' : 'Create a patient account'}
+            {mode === 'signin' ? 'تسجيل دخول الطاقم' : 'إنشاء حساب مريض'}
           </p>
         </CardHeader>
         <CardBody className="space-y-4">
@@ -112,14 +112,14 @@ export default function LoginPage() {
                   mode === m ? 'bg-nova-primary text-white shadow-soft' : 'text-nova-text-secondary hover:text-nova-text'
                 )}
               >
-                {m === 'signin' ? 'Sign In' : 'Create Account'}
+                {m === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب'}
               </button>
             ))}
           </div>
 
           {checkEmail ? (
             <p className="rounded-lg bg-nova-muted p-3 text-sm text-nova-text">
-              Account created — check your email to confirm, then sign in.
+              تم إنشاء الحساب — check your email to confirm, then sign in.
             </p>
           ) : (
           <form
@@ -156,14 +156,14 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+              {loading ? 'يرجى الانتظار…' : mode === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب'}
             </Button>
           </form>
           )}
 
           <p className="text-center text-xs text-nova-text-muted">
             {mode === 'signin'
-              ? "Don't have an account? Switch to Create Account above."
+              ? "Don't have an account? Switch to إنشاء حساب above."
               : 'Existing staff can sign in directly.'}
           </p>
         </CardBody>
