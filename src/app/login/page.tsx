@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowser, isSupabaseConfigured } from '@/lib/supabase/browser';
+import { checkSupabaseServer } from '@/app/actions';
 import { AuthLayout } from '@/components/layout/AppLayout';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +23,18 @@ export default function LoginPage() {
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  // فحص اتصال السيرفر بـ Supabase (بيئة المعاينة قد تحجب الدومين حتى مع المفاتيح الصحيحة)
+  const [serverReachable, setServerReachable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void checkSupabaseServer().then((r) => {
+      if (!cancelled) setServerReachable(r.reachable);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -116,6 +129,15 @@ export default function LoginPage() {
               وتسجيل الدخول يتطلب إضافة <code className="rounded bg-nova-surface px-1 py-0.5">NEXT_PUBLIC_SUPABASE_URL</code> و{' '}
               <code className="rounded bg-nova-surface px-1 py-0.5">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> في ملف{' '}
               <code className="rounded bg-nova-surface px-1 py-0.5">.env.local</code>.
+            </div>
+          )}
+          {isSupabaseConfigured && serverReachable === false && (
+            <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+              <span className="me-1">⚠️</span>
+              المفاتيح مظبوطة ✓ لكن سيرفر التطبيق <strong>مش قادر يوصل لـ Supabase</strong> من هذه البيئة
+              (شبكة المعاينة محجوبة عن الدومين). جرّب تشغيل المشروع على جهازك{' '}
+              <code className="rounded bg-white px-1 py-0.5">npm run dev</code> لتجربة الاتصال الحقيقي —
+              وبينما ذلك تستخدم الواجهات العامة ببيانات تجريبية.
             </div>
           )}
           <div className="flex gap-1 rounded-lg bg-nova-muted p-1" role="tablist">

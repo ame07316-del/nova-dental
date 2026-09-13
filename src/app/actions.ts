@@ -17,6 +17,24 @@ import type { Appointment, Dentist, Notification, Patient, Schedule, Service, De
 const SUPABASE_NOT_CONFIGURED =
   'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart the server.';
 
+/**
+ * فحص خفيف من جهة السيرفر: هل Supabase متظبط وفعلًا قابل للوصول؟
+ * بيستخدم في banner صفحة اللوجين عشان يوضح للمستخدم حالة الاتصال الحقيقية
+ * (مثال: البيئة قد تحجب الدومين — عندها المفاتيح مظبوطة لكن السيرفر مش بيوصل).
+ */
+export async function checkSupabaseServer(): Promise<{ configured: boolean; reachable: boolean }> {
+  if (!isSupabaseServerConfigured()) return { configured: false, reachable: false };
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/health`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+      signal: AbortSignal.timeout(4000),
+    });
+    return { configured: true, reachable: res.ok };
+  } catch {
+    return { configured: true, reachable: false };
+  }
+}
+
 export type ActionResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string };
